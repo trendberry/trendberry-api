@@ -1,0 +1,31 @@
+{
+  "name": "trendberry-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "author": "Trendberry team",
+  "license": "ISC",
+  "dependencies": {
+    "acl": "^0.4.10",
+    "async": "^2.1.4",
+    "body-parser": "^1.16.0",
+    "connect-mongo": "^1.3.2",
+    "cookie-parser": "^1.4.3",
+    "express": "^4.14.1",
+    "express-session": "^1.15.0",
+    "generate-password": "^1.3.0",
+    "glob": "^7.1.1",
+    "gm": "^1.23.0",
+    "method-override": "^2.3.7",
+    "mongodb": "^2.2.22",
+    "mongoose": "^4.8.1",
+    "multer": "^1.3.0",
+    "nodemailer": "^3.0.2",
+    "owasp-password-strength-test": "^1.3.0",
+    "passport": "^0.3.2",
+    "passport-local": "^1.0.0",
+    "transliteration": "^1.4.1",
+    "validator": "^6.2.1",
+    "xml-stream": "^0.4.5"
+  }
+}
