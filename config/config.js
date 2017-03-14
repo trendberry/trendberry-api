@@ -6,7 +6,8 @@ module.exports = {
     port: 8080
   },
   db: {
-    uri: 'mongodb://localhost:27017/tb-admin',
+   // uri: 'mongodb://localhost:27017/tb-admin',
+   uri: 'mongodb://trendberry_user:admin123@ds145828.mlab.com:45828/trendberry',
     options: {}
   },
   session: {
@@ -29,6 +30,9 @@ module.exports = {
       vendor: {
         path: './public/uploads/pictures/vendors/',
         requiredSize: [640, 640]
+      },
+      temp: {
+        path: './public/uploads/pictures/temp/'
       }
     }
   },
@@ -38,5 +42,12 @@ module.exports = {
     minLength: 8,
     minPhraseLength: 16,
     minOptionalTestsToPass: 5
+  },
+  pagination: {
+    default: {
+      limit: 10,
+      page: 1,
+      sort: '-created'
+    }
   }
 };

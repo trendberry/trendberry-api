@@ -7,17 +7,16 @@ var path = require('path'),
   mongoose = require('mongoose'),
   async = require('async'),
   Vendor = mongoose.model('Vendor'),
-  errorHandler = require(path.resolve('./server/core/controllers/errors.controller')),
-  _ = require('lodash');
-  var fs = require('fs');
+  config = require(path.resolve('./config/config')),
+  errorHandler = require(path.resolve('./server/core/controllers/errors.controller'));
 
 /**
  * Create a Vendor
  */
-exports.create = function(req, res) {
+exports.create = function (req, res) {
   var vendor = new Vendor(req.body);
 
-  vendor.save(function(err) {
+  vendor.save(function (err) {
     if (err) {
       return res.status(400).send({
         message: errorHandler.getErrorMessage(err)
@@ -31,28 +30,25 @@ exports.create = function(req, res) {
 /**
  * Show the current Vendor
  */
-exports.read = function(req, res) {
+exports.read = function (req, res) {
   // convert mongoose document to JSON
   var vendor = req.vendor ? req.vendor.toJSON() : {};
-
-  res.jsonp(vendor);
+  res.json(vendor);
 };
 
 /**
  * Update a Vendor
  */
-exports.update = function(req, res) {
+exports.update = function (req, res) {
   var vendor = req.vendor;
-
-  vendor = _.extend(vendor, req.body);
-
-  vendor.save(function(err) {
+  Object.assign(vendor, req.body);
+  vendor.save(function (err) {
     if (err) {
       return res.status(400).send({
         message: errorHandler.getErrorMessage(err)
       });
     } else {
-      res.jsonp(vendor);
+      res.json(vendor);
     }
   });
 };
@@ -60,16 +56,16 @@ exports.update = function(req, res) {
 /**
  * Delete an Vendor
  */
-exports.delete = function(req, res) {
+exports.delete = function (req, res) {
   var vendor = req.vendor;
 
-  vendor.remove(function(err) {
+  vendor.remove(function (err) {
     if (err) {
       return res.status(400).send({
         message: errorHandler.getErrorMessage(err)
       });
     } else {
-      res.jsonp(vendor);
+      res.json(vendor);
     }
   });
 };
@@ -77,22 +73,44 @@ exports.delete = function(req, res) {
 /**
  * List of Vendors
  */
-exports.list = function(req, res) {
+exports.list = function (req, res) {
+  var sort = req.query._sort ? req.query._sort : config.pagination.default.sort;
+  var page = req.query._page ? parseInt(req.query._page, 10) : config.pagination.default.page;
+  var limit = req.query._limit ? parseInt(req.query._limit, 10) : config.pagination.default.limit;
+  var query = {};
+  if (req.query.name !== undefined) {
+    query.name = {
+      '$regex': req.query.name,
+      '$options': 'i'
+    };
+  };
 
-  async.parallel([function (callback) {
-    Vendor.count(function (err, count) {
-      callback(err, count);
-    });
-  }, function (callback) {
-    Vendor.find().sort('-created').exec(function(err, vendors) {
-      callback(err, vendors);
-    });
-  }], function (err, results) {
+  async.series([
+    function (callback) {
+      Vendor.find(query).count(function (err, count) {
+        if (count != 0) {
+          callback(err, count);
+        } else {
+          callback(new Error('no vendors found'), count);
+        }
+      });
+    },
+    function (callback) {
+      Vendor.find(query).sort(sort).skip((page - 1) * limit).limit(limit).exec(function (err, vendors) {
+        callback(err, vendors);
+      });
+    }
+  ], function (err, results) {
     if (err) {
+      if (err.message === 'no vendors found') {
+        return res.json({
+          items: [],
+          count: 0
+        });
+      }
       return res.status(422).send({
         message: errorHandler.getErrorMessage(err)
       });
-    } else {
       res.json({
         items: results[1],
         count: results[0]
@@ -100,10 +118,11 @@ exports.list = function(req, res) {
     }
   });
 };
+
 /**
  * Vendor middleware
  */
-exports.vendorByID = function(req, res, next, id) {
+exports.vendorByID = function (req, res, next, id) {
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).send({

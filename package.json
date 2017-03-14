@@ -5,6 +5,9 @@
   "main": "server.js",
   "author": "Trendberry team",
   "license": "ISC",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
     "acl": "^0.4.10",
     "async": "^2.1.4",

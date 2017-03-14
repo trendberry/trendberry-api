@@ -7,9 +7,10 @@ var mongoose = require('mongoose'),
   Schema = mongoose.Schema,
   path = require('path'),
   slugify = require('transliteration').slugify,
-  config = require(path.resolve('./config/config'));
+  config = require(path.resolve('./config/config')),
 //  metaPlugin = require(path.resolve('./modules/meta/server/models/meta.server.model')),
-//  picturePlugin = require(path.resolve('./modules/pictures/server/models/pictures.server.model'));
+  picturePlugin = require(path.resolve('./server/modules/pictures/models/pictures.model'));
+
 
 /**
  * Shop Schema
@@ -36,9 +37,7 @@ var ShopSchema = new Schema({
 /**
  * Picture upload middleware
  */
-//ShopSchema.plugin(picturePlugin, {
-//  picturesPath: path.resolve(config.uploads.shop.image.dest)
-//});
+ShopSchema.plugin(picturePlugin, config.uploads.pictures.shop);
 
 /**
  * Pre-save middleware

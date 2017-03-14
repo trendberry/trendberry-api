@@ -10,6 +10,7 @@ var mongoose = require('mongoose'),
   async = require('async'),
   config = require(path.resolve('./config/config'));
 
+
 /**
  * Pictures Plugin
  */
@@ -24,11 +25,10 @@ module.exports = function picturePlugin(schema, options) {
       }
     }]
   });
-
-  if (options && options.picturesPath) {
-    if (!(fs.existsSync(options.picturesPath))) {
-      options.picturesPath.split(path.sep).forEach(function (dir, index, arr) {
-        var parent = arr.slice(0, index).join(path.sep);
+  if (options && options.path) {
+    if (!(fs.existsSync(options.path))) {
+      options.path.split('/').forEach(function (dir, index, arr) {
+        var parent = arr.slice(0, index).join('/');
         var dirPath = path.resolve(parent, dir);
         if (!fs.existsSync(dirPath)) {
           fs.mkdirSync(dirPath);

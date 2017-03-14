@@ -6,22 +6,23 @@
 var path = require('path'),
   mongoose = require('mongoose'),
   Product = mongoose.model('Product'),
-  errorHandler = require(path.resolve('./server/core/controllers/errors.controller')),
-  _ = require('lodash');
+  config = require(path.resolve('./config/config')),
+  errorHandler = require(path.resolve('./server/core/controllers/errors.controller'));
+
 
 /**
  * Create a Product
  */
-exports.create = function(req, res) {
+exports.create = function (req, res) {
   var product = new Product(req.body);
-  
-  product.save(function(err) {
+
+  product.save(function (err) {
     if (err) {
       return res.status(400).send({
         message: errorHandler.getErrorMessage(err)
       });
     } else {
-      res.jsonp(product);
+      res.json(product);
     }
   });
 };
@@ -29,28 +30,27 @@ exports.create = function(req, res) {
 /**
  * Show the current Product
  */
-exports.read = function(req, res) {
+exports.read = function (req, res) {
   // convert mongoose document to JSON
   var product = req.product ? req.product.toJSON() : {};
-  
-  res.jsonp(product);
+
+  res.json(product);
 };
 
 /**
  * Update a Product
  */
-exports.update = function(req, res) {
+exports.update = function (req, res) {
   var product = req.product;
 
-  product = _.extend(product, req.body);
-
-  product.save(function(err) {
+  Object.assign(product, req.body);
+  product.save(function (err) {
     if (err) {
       return res.status(400).send({
         message: errorHandler.getErrorMessage(err)
       });
     } else {
-      res.jsonp(product);
+      res.json(product);
     }
   });
 };
@@ -58,10 +58,10 @@ exports.update = function(req, res) {
 /**
  * Delete an Product
  */
-exports.delete = function(req, res) {
+exports.delete = function (req, res) {
   var product = req.product;
 
-  product.remove(function(err) {
+  product.remove(function (err) {
     if (err) {
       return res.status(400).send({
         message: errorHandler.getErrorMessage(err)
@@ -75,14 +75,48 @@ exports.delete = function(req, res) {
 /**
  * List of Products
  */
-exports.list = function(req, res) {
-  Product.find().sort('-created').exec(function(err, products) {
+exports.list = function (req, res) {
+  var sort = req.query._sort ? req.query._sort : config.pagination.default.sort;
+  var page = req.query._page ? parseInt(req.query._page, 10) : config.pagination.default.page;
+  var limit = req.query._limit ? parseInt(req.query._limit, 10) : config.pagination.default.limit;
+  var query = {};
+  if (req.query.name !== undefined) {
+    query.name = {
+      '$regex': req.query.name,
+      '$options': 'i'
+    };
+  };
+
+  async.series([
+    function (callback) {
+      Product.find(query).count(function (err, count) {
+        if (count != 0) {
+          callback(err, count);
+        } else {
+          callback(new Error('no products found'), count);
+        }
+      });
+    },
+    function (callback) {
+      Product.find(query).sort(sort).skip((page - 1) * limit).limit(limit).populate('category', 'shop', 'vendor').exec(function (err, products) {
+        callback(err, products);
+      });
+    }
+  ], function (err, results) {
     if (err) {
-      return res.status(400).send({
+      if (err.message === 'no products found') {
+        return res.json({
+          items: [],
+          count: 0
+        });
+      }
+      return res.status(422).send({
         message: errorHandler.getErrorMessage(err)
       });
-    } else {
-      res.jsonp(products);
+      res.json({
+        items: results[1],
+        count: results[0]
+      });
     }
   });
 };
@@ -90,7 +124,7 @@ exports.list = function(req, res) {
 /**
  * Product middleware
  */
-exports.productByID = function(req, res, next, id) {
+exports.productByID = function (req, res, next, id) {
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).send({
