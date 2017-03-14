@@ -9,6 +9,7 @@ var config = require('../config'),
   cookieParser = require('cookie-parser'),
   serverFiles = require('../struct/server.files'),
   methodOverride = require('method-override'),
+  cors = require('cors'),
   MongoStore = require('connect-mongo')(session);
 
 module.exports.initMiddleware = function (app) {
@@ -17,6 +18,7 @@ module.exports.initMiddleware = function (app) {
   }));
   app.use(bodyParser.json());
   app.use(methodOverride());
+  app.use(cors());
 }
 
 module.exports.initModels = function () {
