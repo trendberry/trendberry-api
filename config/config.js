@@ -3,7 +3,7 @@
 module.exports = {
   server: {
     host: '0.0.0.0',
-    port: 8080
+    port: process.env.PORT || 8080
   },
   db: {
    // uri: 'mongodb://localhost:27017/tb-admin',
