@@ -7,7 +7,7 @@ module.exports = {
   },
   db: {
    // uri: 'mongodb://localhost:27017/tb-admin',
-   uri: 'mongodb://trendberry_user:admin123@ds145828.mlab.com:45828/trendberry',
+    uri: 'mongodb://trendberry_user:admin123@ds145828.mlab.com:45828/trendberry',
     options: {}
   },
   session: {

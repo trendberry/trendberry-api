@@ -105,17 +105,17 @@ exports.list = function (req, res) {
   ], function (err, results) {
     if (err) {
       if (err.message === 'no products found') {
+        res.setHeader('X-Total-Count', 0);
         return res.json({
-          items: [],
-          count: 0
+          items: []
         });
       }
       return res.status(422).send({
         message: errorHandler.getErrorMessage(err)
       });
+      res.setHeader('X-Total-Count', results[0]);
       res.json({
-        items: results[1],
-        count: results[0]
+        items: results[1]
       });
     }
   });

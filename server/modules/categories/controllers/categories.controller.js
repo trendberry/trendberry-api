@@ -83,39 +83,30 @@ exports.delete = function (req, res) {
  * List of Categories
  */
 exports.list = function (req, res) {
-  var sort = req.query.sort ? req.query.sort : 'path';
-  // var sortParam = sort.replace('-', '');
-  // sort = 'path';
-  var page = req.query.page ? parseInt(req.query.page, 10) : 1;
-  var limit = req.query.limit ? parseInt(req.query.limit, 10) : 10;
-  // var match = req.query.match ? req.query.match : {};
-  var match = {};
+  var sort = req.query._sort ? req.query._sort : config.pagination.default.sort;
+  var page = req.query._page ? parseInt(req.query._page, 10) : config.pagination.default.page;
+  var limit = req.query._limit ? parseInt(req.query._limit, 10) : config.pagination.default.limit;
+  var query = {};
   if (req.query.name !== undefined) {
-    match.name = {
+    query.name = {
       '$regex': req.query.name,
       '$options': 'i'
     };
   }
 
   if (req.query.parent !== undefined) {
-    match.parent = req.query.parent ? new ObjectId(req.query.parent) : null;
+    query.parent = req.query.parent ? new ObjectId(req.query.parent) : null;
   }
 
-  // Maybe there less ugly way to solve sorting
-  // if (req.query.sort === 'name') {
-  //   sort = 'ancestors.0.name';
-  // } else if (req.query.sort === '-name') {
-  //   sort = '-ancestors.name';
-  // }
-
-  async.parallel([function (callback) {
-    Category.find(match).count(function (err, count) {
-      callback(err, count);
+  async.series([function (callback) {
+    Category.find(query).count(function (err, count) {
+      if (count != 0) {
+        callback(err, count);
+      } else {
+        callback(new Error('no categories found'), count);
+      }
     });
   }, function (callback) {
-    // Category.find(filter).skip((page - 1) * limit).limit(limit).sort(sort).exec(function (err, categories) {
-    //   callback(err, categories);
-    // });
     Category
       .aggregate()
       .match(match)
@@ -138,15 +129,16 @@ exports.list = function (req, res) {
         ancestors: 1,
         picture: 1,
         path: {
-          $concatArrays: [
-            {
+          $concatArrays: [{
               $map: {
                 input: '$ancestors',
                 as: 'a',
                 in: ['$$a.name', '$$a._id']
               }
             },
-            [['$name', '$_id']]
+            [
+              ['$name', '$_id']
+            ]
           ]
         }
       }).sort(sort).skip((page - 1) * limit).limit(limit).exec(function (err, categories) {
@@ -155,13 +147,19 @@ exports.list = function (req, res) {
 
   }], function (err, results) {
     if (err) {
+      if (err.message === 'no categories found') {
+        res.setHeader('X-Total-Count', 0);
+        return res.json({
+          items: []
+        });
+      }
       return res.status(422).send({
         message: errorHandler.getErrorMessage(err)
       });
     } else {
+      res.setHeader('X-Total-Count', results[0]);
       res.json({
-        items: results[1],
-        count: results[0]
+        items: results[1]
       });
     }
   });
@@ -242,7 +240,10 @@ exports.pictureDelete = function (req, res) {
         message: errorHandler.getErrorMessage(err)
       });
     } else {
-      res.jsonp({ data: category, pictureId: req.params.pictureId });
+      res.jsonp({
+        data: category,
+        pictureId: req.params.pictureId
+      });
     }
   });
 };
