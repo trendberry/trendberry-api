@@ -6,6 +6,7 @@
 var passport = require('passport'),
   User = require('mongoose').model('User'),
   path = require('path'),
+  serverFiles = require(path.resolve('./config/struct/server.files')),
   config = require(path.resolve('./config/config'));
 
 /**
@@ -26,9 +27,8 @@ module.exports = function (app, db) {
     });
   });
 
-  // Initialize strategies
-  config.utils.getGlobbedPaths(path.join(__dirname, './strategies/**/*.js')).forEach(function (strategy) {
-    require(path.resolve(strategy))(config);
+  serverFiles.getPaths(path.join(__dirname, './strategies/**/*.js')).forEach(function (strategy) {
+    require(path.resolve(strategy));
   });
 
   // Add passport's middleware

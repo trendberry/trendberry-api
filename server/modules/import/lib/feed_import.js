@@ -8,7 +8,7 @@ var http = require('http'),
   util = require('util'),
   contentDisposition = require('content-disposition'),
   XmlStream = require('xml-stream'),
-  ruleList = require(path.resolve('./server/modules/import/lib/import_rules')),
+  RuleFile = require(path.resolve('./server/modules/import/lib/import_rules')),
   mongoose = require('mongoose'),
   Product = mongoose.model('Product'),
   Category = mongoose.model('Category'),
@@ -52,7 +52,7 @@ getCategoriesMask(function (err, categories) {
 });
 
 
-function FeedImport(source) {
+function FeedImport(source, rules) {
   if (typeof source === 'string') {
     this.source = {
       url: source,
@@ -61,6 +61,7 @@ function FeedImport(source) {
   } else {
     this.source = source;
   }
+  this.rules = new RuleFile(rules);
   this.createdDate = Date.now();
   this.downloadStartedDate = 0;
   //exclude download time
@@ -163,14 +164,14 @@ FeedImport.prototype.importItem = function (item) {
   var finalCategoryTree = [];
   product.name = item.name.replace(" " + item.vendor, "");
   //  product.name = item.name;
-  category = ruleList.getCategory(product.name);
+  category = this.rules.getCategory(product.name);
   if (!category) {
     return self.emit('itemImportNeedUser', item);
   }
   for (var i = 0; i < params.length; i++) {
-    rule = ruleList.getRule(params[i].$.name)
+    rule = this.rules.getRule(params[i].$.name)
     if (rule) {
-      value = ruleList.getValue(rule, params[i].$text);
+      value = this.rules.getValue(rule, params[i].$text);
       if (value) {
         if (Array.isArray(product[rule.prop])) {
           product[rule.prop].push(value);
@@ -183,8 +184,8 @@ FeedImport.prototype.importItem = function (item) {
 
   if (!product.age) {
     if (self.categories[item.categoryId]) {
-      rule = ruleList.getRule('age');
-      value = ruleList.getValue(rule, self.categories[item.categoryId]);
+      rule = this.rules.getRule('age');
+      value = this.rules.getValue(rule, self.categories[item.categoryId]);
       if (!value) {
         this.importStats.ignored++;
         return self.emit('itemImportIgnored', item);
@@ -199,8 +200,8 @@ FeedImport.prototype.importItem = function (item) {
       product.sex = category.sex;
     } else {
       if (self.categories[item.categoryId]) {
-        rule = ruleList.getRule('gender');
-        value = ruleList.getValue(rule, self.categories[item.categoryId]);
+        rule = this.rules.getRule('gender');
+        value = this.rules.getValue(rule, self.categories[item.categoryId]);
         if (!value) {
           this.importStats.ignored++;
           return self.emit('itemImportIgnored', item);

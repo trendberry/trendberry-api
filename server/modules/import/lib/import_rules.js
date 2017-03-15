@@ -2,7 +2,12 @@ var fs = require('fs'),
   path = require('path');
 
 function RuleFile(file) {
-  this.file = file;
+  if (file) {
+    this.file = file;
+  } else {
+    this.file = path.resolve('./modules/import/lib/rules/default.json');
+  }
+
   try {
     this.rules = JSON.parse(fs.readFileSync(file));
   } catch (e) {
@@ -84,6 +89,4 @@ RuleFile.prototype.getCategory = function (value) {
   }
 }
 
-var ruleList = new RuleFile(path.resolve('./modules/import/lib/rules/rules.json'));
-
-module.exports = ruleList;
+module.exports = RuleFile;

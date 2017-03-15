@@ -50,5 +50,9 @@ module.exports = {
       page: 1,
       sort: '-created'
     }
+  },
+  import: {
+    downloadPath: '',
+    maxParallelCount: 1
   }
 };

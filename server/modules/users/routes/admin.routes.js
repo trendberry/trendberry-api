@@ -3,12 +3,12 @@
 /**
  * Module dependencies
  */
-var adminPolicy = require('../policies/admin.server.policy'),
-  admin = require('../controllers/admin.server.controller');
+var adminPolicy = require('../policies/admin.policy'),
+  admin = require('../controllers/admin.controller');
 
 module.exports = function (app) {
   // User route registration first. Ref: #713
-  require('./users.server.routes.js')(app);
+  require('./users.routes.js')(app);
 
   // Users collection routes
   app.route('/api/users')

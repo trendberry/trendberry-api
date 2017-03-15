@@ -112,11 +112,11 @@ exports.list = function (req, res) {
       return res.status(422).send({
         message: errorHandler.getErrorMessage(err)
       });
-      res.setHeader('X-Total-Count', results[0]);
-      res.json(
-        results[1]
-      );
     }
+    res.setHeader('X-Total-Count', results[0]);
+    res.json(
+      results[1]
+    );
   });
 };
 
