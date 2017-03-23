@@ -78,6 +78,9 @@ exports.list = function (req, res) {
   var sort = req.query._sort ? req.query._sort : config.pagination.default.sort;
   var page = req.query._page ? parseInt(req.query._page, 10) : config.pagination.default.page;
   var limit = req.query._limit ? parseInt(req.query._limit, 10) : config.pagination.default.limit;
+  if (req.query._order === 'DESC') {
+    sort = '-' + sort;
+  }
   var query = {};
   if (req.query.q !== undefined) {
     query.name = {

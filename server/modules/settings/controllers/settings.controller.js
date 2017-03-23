@@ -14,7 +14,7 @@ var path = require('path'),
  * Show the current Setting
  */
 exports.read = function (req, res) {
-  res.send(req.setting);
+  res.send(settings[req.setting]);
 };
 
 /**
@@ -23,18 +23,8 @@ exports.read = function (req, res) {
 exports.update = function (req, res) {
   var setting = req.setting;
   settings[setting] = req.body[setting];
-  
-  setting = _.extend(setting, req.body);
-
-  setting.save(function (err) {
-    if (err) {
-      return res.status(400).send({
-        message: errorHandler.getErrorMessage(err)
-      });
-    } else {
-      res.jsonp(setting);
-    }
-  });
+  setting.save();
+  res.json(settings);
 };
 
 /**
