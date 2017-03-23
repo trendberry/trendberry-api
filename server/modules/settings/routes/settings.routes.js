@@ -8,9 +8,9 @@ var settingsPolicy = require('../policies/settings.policy'),
 
 module.exports = function(app) {
   // Settings Routes
-  app.route('/api/settings').all(settingsPolicy.isAllowed);
-    //.get(settings.list)
-   // .post(settings.create);
+  app.route('/api/settings')//.all(settingsPolicy.isAllowed);
+    .get(settings.list);
+    //.post(settings.create);
 
   app.route('/api/settings/:settingId')//.all(settingsPolicy.isAllowed)
     .get(settings.read)

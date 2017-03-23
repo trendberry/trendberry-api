@@ -79,9 +79,9 @@ exports.list = function (req, res) {
   var page = req.query._page ? parseInt(req.query._page, 10) : config.pagination.default.page;
   var limit = req.query._limit ? parseInt(req.query._limit, 10) : config.pagination.default.limit;
   var query = {};
-  if (req.query.name !== undefined) {
+  if (req.query.q !== undefined) {
     query.name = {
-      '$regex': req.query.name,
+      '$regex': req.query.q,
       '$options': 'i'
     };
   };

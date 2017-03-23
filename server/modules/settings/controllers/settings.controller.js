@@ -5,7 +5,8 @@
  */
 var path = require('path'),
   mongoose = require('mongoose'),
-  Setting = mongoose.model('Setting'),
+  // Setting = mongoose.model('Setting'),
+  settings = require(path.resolve('./server/modules/settings/lib/settings.js')),
   fs = require('fs'),
   errorHandler = require(path.resolve('./server/core/controllers/errors.controller'));
 
@@ -21,7 +22,8 @@ exports.read = function (req, res) {
  */
 exports.update = function (req, res) {
   var setting = req.setting;
-
+  settings[setting] = req.body[setting];
+  
   setting = _.extend(setting, req.body);
 
   setting.save(function (err) {
@@ -36,33 +38,20 @@ exports.update = function (req, res) {
 };
 
 /**
- * Delete an Setting
+ * Delete a Setting
  */
 exports.delete = function (req, res) {
   var setting = req.setting;
-
-  setting.remove(function (err) {
-    if (err) {
-      return res.status(400).send({
-        message: errorHandler.getErrorMessage(err)
-      });
-    } else {
-      res.jsonp(setting);
-    }
-  });
+  delete settings[setting];
+  setting.save();
+  res.json(settings);
 };
 
 /**
  * List of Settings
  */
 exports.list = function (req, res) {
-  // var settings = fs.readFileSync(path.resolve('./server/modules/settings/files/settings.json'));
-  fs.readFileSync('hgh', function (err) {
-    console.log(err);
-  });
-
-
-  res.send(settings);
+  res.json(settings);
 };
 
 /**
