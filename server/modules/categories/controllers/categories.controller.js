@@ -109,7 +109,7 @@ exports.list = function (req, res) {
   }, function (callback) {
     Category
       .aggregate()
-      .match(match)
+      .match(query)
       .append({
         $graphLookup: {
           from: 'categories',

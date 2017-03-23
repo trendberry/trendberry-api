@@ -28,5 +28,5 @@ multerConfig.storage = multer.diskStorage({
 });
 
 module.exports = function (app, db) {
-  app.use(multer(multerConfig).single('picture'));
+  //app.use(multer(multerConfig).single('picture'));
 }
