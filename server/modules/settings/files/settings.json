@@ -1,1 +1,1 @@
-{"meta_product_template":"this is product template", "meta_shop_template" : "bla"}
+{"meta":{"shop":{"title":"this is [name]", "description": "mata description"}}}

@@ -8,7 +8,8 @@ var mongoose = require('mongoose'),
   path = require('path'),
   slugify = require('transliteration').slugify,
   config = require(path.resolve('./config/config')),
-//  metaPlugin = require(path.resolve('./modules/meta/server/models/meta.server.model')),
+  settings = require(path.resolve('./server/modules/settings/lib/settings.js')),
+  metaPlugin = require(path.resolve('./server/modules/meta/models/meta.model')),
   picturePlugin = require(path.resolve('./server/modules/pictures/models/pictures.model'));
 
 
@@ -32,7 +33,7 @@ var ShopSchema = new Schema({
   },
 });
 
-//ShopSchema.plugin(metaPlugin);
+ShopSchema.plugin(metaPlugin, settings.meta.shop);
 
 /**
  * Picture upload middleware
