@@ -55,7 +55,7 @@ module.exports = function metaPlugin(schema, options) {
     // Generate Meta Description with template if it's empty
     if (!this.meta.description) {
       if (options.description !== undefined) {
-        this.meta.title = this.generateMetaField(options.description);
+        this.meta.description = this.generateMetaField(options.description);
       }
     }
     next();
