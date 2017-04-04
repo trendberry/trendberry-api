@@ -4,6 +4,7 @@
   "description": "",
   "main": "server.js",
   "author": "Trendberry team",
+  "engines":{"node": "6.9.4"},
   "license": "ISC",
   "scripts": {
     "start": "node server.js"
