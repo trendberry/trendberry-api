@@ -10,7 +10,7 @@ var path = require('path'),
   fs = require('fs'),
   errorHandler = require(path.resolve('./server/core/controllers/errors.controller'));
 
-exports.create = function (req, res) {
+  exports.create = function (req, res) {
   if (req.setting) {
     settings[req.setting] = req.body[req.setting];
     settings.save();

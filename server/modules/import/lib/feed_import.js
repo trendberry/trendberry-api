@@ -55,7 +55,7 @@ getCategoriesMask(function (err, categories) {
 function FeedImport(source, rules) {
   if (typeof source === 'string') {
     this.source = {
-      url: source,
+      feedUrl: source,
       lastUpdate: 0
     }
   } else {
@@ -90,7 +90,7 @@ FeedImport.prototype.downloadFeed = function (callback) {
   var self = this;
   var downloadTime;
   try {
-    var request = http.get(this.source.url, function (response) {
+    var request = http.get(this.source.feedUrl, function (response) {
       if (response.statusCode === 200) {
         var fileName = contentDisposition.parse(response.headers['content-disposition']).parameters.filename;
         self.importStreamFile = fs.createWriteStream(fileName);
@@ -111,7 +111,7 @@ FeedImport.prototype.downloadFeed = function (callback) {
           console.log('failed to download ' + fileName);
           callback();
         });
-        response.pipe(file);
+        response.pipe(self.importStreamFile);
         this.downloadStartedDate = Date.now();
         downloadTime = process.hrtime();
       } else {
@@ -128,6 +128,7 @@ FeedImport.prototype.downloadFeed = function (callback) {
 }
 
 FeedImport.prototype.downloadPicture = function (url, callback) {
+  return callback(null, null);
   var dest = config.uploads.product.image.dest;
   var request = http.get(url, function (response) {
     if (response.statusCode === 200) {
@@ -265,11 +266,11 @@ FeedImport.prototype.startImport = function () {
         });
       }, function () {
         product.picturesToUpload = pictureFiles;
-        product.save(function () {
-          self.importStats.new++;
-          self.workTime = self.workTime + process.hrtime(self._importTime)[0];
+      //  product.save(function () {
+        //  self.importStats.new++;
+        //  self.workTime = self.workTime + process.hrtime(self._importTime)[0];
           callback();
-        });
+       // });
       });
     });
   }, 1);
@@ -302,7 +303,7 @@ FeedImport.prototype.startImport = function () {
   this.xmlStream.collect('picture');
   this.xmlStream.collect('param');
   this.xmlStream.on('endElement: offer', function (item) {
-    if (ruleList.inBlacklist(item.name)) {
+    if (self.rules.inBlacklist(item.name)) {
       self.importStats.blocked++;
       return self.emit('itemImportBlocked', item);
     };
@@ -317,7 +318,7 @@ FeedImport.prototype.startImport = function () {
     self.importItem(item);
     });
   this.xmlStream.on('end', function () {
-    self.source.lastUpdate = Date.now;
+   // self.source.lastUpdate = Date.now;
     console.log('stream parsed');
   });
 }

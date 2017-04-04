@@ -43,7 +43,12 @@ module.exports = function metaPlugin(schema, options) {
   }
 
   schema.pre('save', function (next) {
-    if (!this.meta) this.meta = {};
+    if (!this.meta) {
+      this.meta = {
+        title: undefined,
+        description: undefined
+      };
+    }
 
     // Generate Meta Title with template if it's empty
     if (!this.meta.title) {

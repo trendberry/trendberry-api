@@ -36,7 +36,7 @@ var CategorySchema = new Schema({
 /**
  * Meta Title/Description middleware
  */
-CategorySchema.plugin(metaPlugin);
+//CategorySchema.plugin(metaPlugin);
 
 /**
  * Picture upload middleware

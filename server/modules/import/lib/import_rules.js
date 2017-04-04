@@ -5,11 +5,11 @@ function RuleFile(file) {
   if (file) {
     this.file = file;
   } else {
-    this.file = path.resolve('./modules/import/lib/rules/default.json');
+    this.file = path.resolve('./server/modules/import/lib/rules/default.json');
   }
 
   try {
-    this.rules = JSON.parse(fs.readFileSync(file));
+    this.rules = JSON.parse(fs.readFileSync(this.file));
   } catch (e) {
 
   }
