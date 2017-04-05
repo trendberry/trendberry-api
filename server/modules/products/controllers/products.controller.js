@@ -6,6 +6,7 @@
 var path = require('path'),
   mongoose = require('mongoose'),
   Product = mongoose.model('Product'),
+  async = require('async'),
   config = require(path.resolve('./config/config')),
   errorHandler = require(path.resolve('./server/core/controllers/errors.controller'));
 

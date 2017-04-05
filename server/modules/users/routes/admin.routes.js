@@ -12,11 +12,11 @@ module.exports = function (app) {
 
   // Users collection routes
   app.route('/api/users')
-    .get(adminPolicy.isAllowed, admin.list);
+    .get(/**adminPolicy.isAllowed, */admin.list);
 
   // Single user routes
   app.route('/api/users/:userId')
-    .get(adminPolicy.isAllowed, admin.read)
+    .get(/**adminPolicy.isAllowed,*/ admin.read)
     .put(adminPolicy.isAllowed, admin.update)
     .delete(adminPolicy.isAllowed, admin.delete);
 
