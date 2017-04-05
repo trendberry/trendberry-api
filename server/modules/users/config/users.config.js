@@ -28,7 +28,7 @@ module.exports = function (app, db) {
   });
 
   serverFiles.getPaths(path.join(__dirname, './strategies/**/*.js')).forEach(function (strategy) {
-    require(path.resolve(strategy));
+    require(path.resolve(strategy))(passport);
   });
 
   // Add passport's middleware
