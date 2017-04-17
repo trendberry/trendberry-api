@@ -17,7 +17,7 @@ module.exports = function (app) {
   app.route('/api/import/:importId/resume').all(importPolicy.isAllowed)
     .post(importController.resume);    
   
-  app.route('/api/import')//.all(importPolicy.isAllowed)
+  app.route('/api/import').all(importPolicy.isAllowed)
     .get(importController.list);
 
   app.route('/api/import/:importId').all(importPolicy.isAllowed)

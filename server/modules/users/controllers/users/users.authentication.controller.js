@@ -37,16 +37,21 @@ exports.signup = function (req, res) {
       // Remove sensitive data before login
       user.password = undefined;
       user.salt = undefined;
-
-      req.login(user, function (err) {
-        if (err) {
-          res.status(400).send(err);
-        } else {
-          res.json(user);
-        }
-      });
     }
   });
+  passport.authenticate('local', function (err, user, info) {
+    if (err || !user) {
+      res.status(422).send(info);
+    } else {
+      // Remove sensitive data before login
+      user.password = undefined;
+      user.salt = undefined;
+      res.json({
+        user: user,
+        token: info
+      });
+    }
+  })(req, res, next);
 };
 
 /**
@@ -60,13 +65,9 @@ exports.signin = function (req, res, next) {
       // Remove sensitive data before login
       user.password = undefined;
       user.salt = undefined;
-
-      req.login(user, function (err) {
-        if (err) {
-          res.status(400).send(err);
-        } else {
-          res.json(user);
-        }
+      res.json({
+        user: user,
+        token: info
       });
     }
   })(req, res, next);

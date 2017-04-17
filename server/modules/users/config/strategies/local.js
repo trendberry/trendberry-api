@@ -1,17 +1,18 @@
 'use strict';
 
-/**
- * Module dependencies
- */
 var passport = require('passport'),
   LocalStrategy = require('passport-local').Strategy,
+  jwt = require('jsonwebtoken'),
+  path = require('path'),
+  config = require(path.resolve('./config/config')),
   User = require('mongoose').model('User');
 
 module.exports = function () {
   // Use local strategy
   passport.use(new LocalStrategy({
     usernameField: 'usernameOrEmail',
-    passwordField: 'password'
+    passwordField: 'password',
+    session: false
   },
   function (usernameOrEmail, password, done) {
     User.findOne({
@@ -30,7 +31,13 @@ module.exports = function () {
         });
       }
 
-      return done(null, user);
+      const payload = {
+        sub: user._id
+      };
+      
+      const token = jwt.sign(payload, config.jwtSecret);
+      
+      return done(null, user, token);
     });
   }));
 };

@@ -44,6 +44,7 @@ module.exports = {
     minPhraseLength: 16,
     minOptionalTestsToPass: 5
   },
+  jwtSecret: '1234567890asdfghjnj',
   pagination: {
     default: {
       limit: 10,
