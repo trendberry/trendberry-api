@@ -14,6 +14,7 @@ var path = require('path'),
 /**
  * Create a Shop
  */
+
 exports.create = function (req, res) {
   var shop = new Shop(req.body);
 
@@ -144,6 +145,7 @@ exports.shopByID = function (req, res, next, id) {
       });
     }
     req.shop = shop;
+    req.embeddedDoc = shop;
     next();
   });
 };

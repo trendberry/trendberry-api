@@ -9,7 +9,7 @@ var passport = require('passport'),
 
 function checkToken(req, res, next) {
   if (req.headers.authorization) {
-    var token = req.headers.authorization;
+    var token = req.headers.authorization.split()[1];
     jwt.verify(token, config.jwtSecret, function (err, payload) {
       if (!err) {
         User.findById(payload.sub, function (err, user) {

@@ -174,13 +174,13 @@ exports.list = function (req, res) {
 exports.pictureCreate = function (req, res) {
   var category = req.category;
   var existingImageName;
-
-  var multerConfig = config.uploads.category.image;
+var multerConfig = {dest:'./'};
+ // var multerConfig = config.uploads.category.image;
   // Filtering to upload only images
-  multerConfig.fileFilter = require(path.resolve('./config/lib/multer')).imageFileFilter;
+  //multerConfig.fileFilter = require(path.resolve('./config/lib/multer')).imageFileFilter;
   multerConfig.storage = multer.diskStorage({
     destination: function (req, file, cb) {
-      cb(null, path.resolve(config.uploads.category.image.dest))
+      cb(null, path.resolve('./'))
     },
     filename: function (req, file, cb) {
       crypto.pseudoRandomBytes(16, function (err, raw) {
@@ -189,6 +189,8 @@ exports.pictureCreate = function (req, res) {
       })
     }
   });
+
+
   var upload = multer(multerConfig).single('picture');
 
   if (category) {
