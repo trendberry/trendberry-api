@@ -31,11 +31,6 @@ var http = require('http'),
     })
   })
 
-  Product.find({}).exec(function (err, products) {
-       // products[0].populate('vendor', 'category', 'shop')
-        
-      //  callback(err, products);
-      });
 
 
 var getCategoriesMask = function (callback) {
@@ -487,7 +482,7 @@ FeedImport.prototype.getInfo = function () {
 var testImport = new FeedImport();
 
 testImport.downloadFeed(function () {
-  testImport.startImport();
+ // testImport.startImport();
 });
 
 module.exports = FeedImport;
