@@ -22,14 +22,14 @@ var http = require('http'),
 
 
 
-  Product.find({}).exec(function(err, products){
+  //Product.find({}).exec(function(err, products){
    
     
-    products.forEach(function(item){
+    //products.forEach(function(item){
    //  item.save();
      // item.remove();
-    })
-  })
+    //})
+  //})
 
 
 
