@@ -8,6 +8,7 @@ var mongoose = require('mongoose'),
   path = require('path'),
   config = require(path.resolve('./config/config')),
   metaPlugin = require(path.resolve('./server/modules/meta/models/meta.model')),
+  skuPlugin = require('./product.sku.model'),
   picturePlugin = require(path.resolve('./server/modules/pictures/models/pictures.model'));
 
 /**
@@ -20,6 +21,11 @@ var ProductSchema = new Schema({
     required: 'Please fill Product name',
     trim: true
   },
+  //groupId: String,
+  //offerId: {
+  //  type: String,
+  //  required: 'Offer id required'
+  //},
   description: String,
   category: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -41,10 +47,7 @@ var ProductSchema = new Schema({
     enum: [null, 1, 2, 3],
     default: null
   },
-  color: {
-    type: [String],
-    default: void 0
-  },
+  color:  [String],
   material: [String],
   size: [String],
   sex: {
@@ -63,7 +66,8 @@ var ProductSchema = new Schema({
   },
 });
 
-ProductSchema.plugin(picturePlugin, config.uploads.pictures.product);
 
+//ProductSchema.plugin(picturePlugin, config.uploads.pictures.product);
+//ProductSchema.plugin(skuPlugin);
 
 mongoose.model('Product', ProductSchema);

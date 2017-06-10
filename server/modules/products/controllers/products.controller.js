@@ -102,7 +102,7 @@ exports.list = function (req, res) {
       });
     },
     function (callback) {
-      Product.find(query).sort(sort).skip((page - 1) * limit).limit(limit).populate('category', 'shop', 'vendor').exec(function (err, products) {
+      Product.find(query).sort(sort).skip((page - 1) * limit).limit(limit).populate(['category', 'shop', 'vendor']).exec(function (err, products) {
         callback(err, products);
       });
     }

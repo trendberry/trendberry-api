@@ -12,8 +12,30 @@ var http = require('http'),
   mongoose = require('mongoose'),
   Product = mongoose.model('Product'),
   Category = mongoose.model('Category'),
+  Shop = mongoose.model('Shop'),
+  Vendor = mongoose.model('Vendor'),
   crypto = require('crypto'),
   config = require(path.resolve('./config/config'));
+
+  
+  
+
+
+
+  Product.find({}).exec(function(err, products){
+   
+    
+    products.forEach(function(item){
+   //  item.save();
+     // item.remove();
+    })
+  })
+
+  Product.find({}).exec(function (err, products) {
+       // products[0].populate('vendor', 'category', 'shop')
+        
+      //  callback(err, products);
+      });
 
 
 var getCategoriesMask = function (callback) {
@@ -86,9 +108,16 @@ function FeedImport(source, rules) {
 util.inherits(FeedImport, events.EventEmitter);
 
 FeedImport.prototype.downloadFeed = function (callback) {
-  console.log('downloading from ' + this.source.url);
+  //  console.log('downloading from ' + this.source.url);
   var self = this;
   var downloadTime;
+
+  //test
+
+  self.xmlStream = new XmlStream(fs.createReadStream('wildberries-ru.xml'));
+  return callback();
+
+
   try {
     var request = http.get(this.source.feedUrl, function (response) {
       if (response.statusCode === 200) {
@@ -128,7 +157,12 @@ FeedImport.prototype.downloadFeed = function (callback) {
 }
 
 FeedImport.prototype.downloadPicture = function (url, callback) {
+
+  //test
+
   return callback(null, null);
+
+
   var dest = config.uploads.product.image.dest;
   var request = http.get(url, function (response) {
     if (response.statusCode === 200) {
@@ -159,6 +193,7 @@ FeedImport.prototype.importItem = function (item) {
   var params = item.param;
   var picts = item.picture;
   var product = new Product();
+  product.offerId = item.$.id;
   var rule;
   var value;
   var category;
@@ -234,7 +269,8 @@ FeedImport.prototype.importItem = function (item) {
   product.price = parseInt(item.price);
   product.oldPrice = item.oldprice !== undefined ? parseInt(item.oldprice) : null;
   product.url = item.url;
-  product.shop = this.source.id !== undefined ? this.source : null;
+  //product.shop = this.source.id !== undefined ? this.source : null;
+  product.shop = new Shop();
   this.productImportQueue.push({
     product: product,
     pictures: picts,
@@ -254,7 +290,7 @@ FeedImport.prototype.startImport = function () {
         return callback();
       }
       console.log(product);
-      return callback();
+    //  return callback();
       async.eachSeries(data.pictures, function (picture, done) {
         self.downloadPicture(picture, function (err, file) {
           if (!err) {
@@ -265,12 +301,14 @@ FeedImport.prototype.startImport = function () {
           done();
         });
       }, function () {
-        product.picturesToUpload = pictureFiles;
-      //  product.save(function () {
+        //product.picturesToUpload = pictureFiles;
+        console.log(product);
+        product.save();
+        //  product.save(function () {
         //  self.importStats.new++;
         //  self.workTime = self.workTime + process.hrtime(self._importTime)[0];
-          callback();
-       // });
+        callback();
+        // });
       });
     });
   }, 1);
@@ -316,9 +354,9 @@ FeedImport.prototype.startImport = function () {
         return self.emit('itemImportIgnored', item);
     }
     self.importItem(item);
-    });
+  });
   this.xmlStream.on('end', function () {
-   // self.source.lastUpdate = Date.now;
+    // self.source.lastUpdate = Date.now;
     console.log('stream parsed');
   });
 }
@@ -445,5 +483,11 @@ FeedImport.prototype.getInfo = function () {
     importStats: this.importStats
   };
 }
+
+var testImport = new FeedImport();
+
+testImport.downloadFeed(function () {
+  testImport.startImport();
+});
 
 module.exports = FeedImport;
