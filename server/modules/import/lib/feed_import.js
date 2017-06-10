@@ -481,8 +481,8 @@ FeedImport.prototype.getInfo = function () {
 
 var testImport = new FeedImport();
 
-testImport.downloadFeed(function () {
+//testImport.downloadFeed(function () {
  // testImport.startImport();
-});
+//});
 
 module.exports = FeedImport;
