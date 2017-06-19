@@ -21,11 +21,11 @@ var ProductSchema = new Schema({
     required: 'Please fill Product name',
     trim: true
   },
-  //groupId: String,
-  //offerId: {
-  //  type: String,
-  //  required: 'Offer id required'
-  //},
+  groupId: String,
+  offerId: {
+    type: String,
+    required: 'Offer id required',
+    },
   description: String,
   category: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -47,7 +47,7 @@ var ProductSchema = new Schema({
     enum: [null, 1, 2, 3],
     default: null
   },
-  color:  [String],
+  color: [String],
   material: [String],
   size: [String],
   sex: {
@@ -68,6 +68,6 @@ var ProductSchema = new Schema({
 
 
 //ProductSchema.plugin(picturePlugin, config.uploads.pictures.product);
-//ProductSchema.plugin(skuPlugin);
+ProductSchema.plugin(skuPlugin);
 
 mongoose.model('Product', ProductSchema);

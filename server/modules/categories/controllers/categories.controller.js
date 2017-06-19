@@ -152,18 +152,20 @@ exports.list = function (req, res) {
     if (err) {
       if (err.message === 'no categories found') {
         res.setHeader('X-Total-Count', 0);
-        return res.json(
-          []
-        );
+        return res.json({
+          count: 0,
+          items: []
+        });
       }
       return res.status(422).send({
         message: errorHandler.getErrorMessage(err)
       });
     } else {
       res.setHeader('X-Total-Count', results[0]);
-      res.json(
-        results[1]
-      );
+      res.json({
+        count: results[0],
+        items: results[1]
+      });
     }
   });
 };
@@ -174,8 +176,10 @@ exports.list = function (req, res) {
 exports.pictureCreate = function (req, res) {
   var category = req.category;
   var existingImageName;
-var multerConfig = {dest:'./'};
- // var multerConfig = config.uploads.category.image;
+  var multerConfig = {
+    dest: './'
+  };
+  // var multerConfig = config.uploads.category.image;
   // Filtering to upload only images
   //multerConfig.fileFilter = require(path.resolve('./config/lib/multer')).imageFileFilter;
   multerConfig.storage = multer.diskStorage({

@@ -79,7 +79,7 @@ exports.list = function (req, res) {
   var sort = req.query._sort ? req.query._sort : config.pagination.default.sort;
   var page = req.query._page ? parseInt(req.query._page, 10) : config.pagination.default.page;
   var limit = req.query._limit ? parseInt(req.query._limit, 10) : config.pagination.default.limit;
-  
+
   if (req.query._order === 'DESC') {
     sort = '-' + sort;
   }
@@ -110,18 +110,20 @@ exports.list = function (req, res) {
     if (err) {
       if (err.message === 'no shops found') {
         res.setHeader('X-Total-Count', 0);
-        return res.json(
-          []
-        );
+        return res.json({
+          count: 0,
+          items: []
+        });
       }
       return res.status(422).send({
         message: errorHandler.getErrorMessage(err)
       });
     }
     res.setHeader('X-Total-Count', results[0]);
-    res.json(
-      results[1]
-    );
+    res.json({
+      count: results[0],
+      items: results[1]
+    });
   });
 };
 

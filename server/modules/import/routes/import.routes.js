@@ -7,6 +7,12 @@ var importPolicy = require('../policies/import.policy'),
 // importId is is Id of corresponding shop
 
 module.exports = function (app) {
+
+  app.route('/api/import/test')
+    .get(importController.test);
+
+
+
  
   app.route('/api/import/:importId/start').all(importPolicy.isAllowed)
     .post(importController.start);

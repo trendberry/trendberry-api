@@ -21,6 +21,14 @@ var _ = require('lodash'),
 //socket
 var feedImportList = new Map();
 
+exports.test = function(req, res){
+  var testImport = new FeedImport()
+  testImport.downloadFeed(function () {
+  testImport.startImport();
+  res.send('trsd')
+});
+}
+
 
 exports.start = function (req, res) {
   var feedImport = req.import;

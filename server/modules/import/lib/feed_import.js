@@ -17,21 +17,6 @@ var http = require('http'),
   crypto = require('crypto'),
   config = require(path.resolve('./config/config'));
 
-  
-  
-
-
-
-  //Product.find({}).exec(function(err, products){
-   
-    
-    //products.forEach(function(item){
-   //  item.save();
-     // item.remove();
-    //})
-  //})
-
-
 
 var getCategoriesMask = function (callback) {
   Category.find().exec(function (err, categories) {
@@ -109,7 +94,7 @@ FeedImport.prototype.downloadFeed = function (callback) {
 
   //test
 
-  self.xmlStream = new XmlStream(fs.createReadStream('wildberries-ru.xml'));
+  self.xmlStream = new XmlStream(fs.createReadStream('lamoda.xml'));
   return callback();
 
 
@@ -151,6 +136,11 @@ FeedImport.prototype.downloadFeed = function (callback) {
   }
 }
 
+FeedImport.prototype.productExist = function (product) {
+
+}
+
+
 FeedImport.prototype.downloadPicture = function (url, callback) {
 
   //test
@@ -189,6 +179,7 @@ FeedImport.prototype.importItem = function (item) {
   var picts = item.picture;
   var product = new Product();
   product.offerId = item.$.id;
+  product.groupId = item.$.group_id;
   var rule;
   var value;
   var category;
@@ -285,7 +276,7 @@ FeedImport.prototype.startImport = function () {
         return callback();
       }
       console.log(product);
-    //  return callback();
+      //  return callback();
       async.eachSeries(data.pictures, function (picture, done) {
         self.downloadPicture(picture, function (err, file) {
           if (!err) {
@@ -298,11 +289,46 @@ FeedImport.prototype.startImport = function () {
       }, function () {
         //product.picturesToUpload = pictureFiles;
         console.log(product);
-        product.save();
-        //  product.save(function () {
-        //  self.importStats.new++;
-        //  self.workTime = self.workTime + process.hrtime(self._importTime)[0];
-        callback();
+        if (product.groupId) {
+          Product.findOne({
+            groupId: product.groupId
+          }).exec(function (err, doc) {
+            if (doc) {
+              if (doc.offerId != product.offerId) {
+                doc.addSku(product);
+              } else {
+
+                //Object.assign(doc, product);
+              }
+              doc.save(function (err, doc) {
+                if (err) {
+                  var bla = {}
+                }
+              });
+            } else {
+              product.save(function (err) {
+                if (err) {
+                  console.log(err)
+                }
+              });
+            }
+            callback();
+          });
+        } else {
+
+
+
+
+          product.save(function (err) {
+            if (err) {
+              console.log(err)
+            }
+          });
+          //  product.save(function () {
+          //  self.importStats.new++;
+          //  self.workTime = self.workTime + process.hrtime(self._importTime)[0];
+          callback();
+        }
         // });
       });
     });
@@ -481,8 +507,8 @@ FeedImport.prototype.getInfo = function () {
 
 var testImport = new FeedImport();
 
-//testImport.downloadFeed(function () {
- // testImport.startImport();
-//});
+testImport.downloadFeed(function () {
+  // testImport.startImport();
+});
 
 module.exports = FeedImport;

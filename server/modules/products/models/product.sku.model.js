@@ -20,8 +20,30 @@ var SkuSchema = new Schema({
   size: [String],
 });
 
+
+
+SkuSchema.pre('save', function (next) {
+  var bla = this;
+  next();
+});
+
 module.exports = function skuPlugin(schema, options) {
   schema.add({
     sku: [SkuSchema]
   });
+
+  schema.methods.addSku = function (sku) {
+    if (this.sku) {
+      var doc = this.sku.find(function (element) {
+        if (element.offerId == sku.offerId) {
+          return true;
+        }
+      });
+      if (doc) {
+        doc = sku;
+      } else {
+        this.sku.push(sku);
+      }
+    }
+  }
 }
