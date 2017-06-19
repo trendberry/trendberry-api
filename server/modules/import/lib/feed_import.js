@@ -297,9 +297,9 @@ FeedImport.prototype.startImport = function () {
           }
           done();
         });
-      }, async function () {
+      },  function () {
         //product.picturesToUpload = pictureFiles;
-       var prod = await self.productExists(product);
+       var prod =  self.productExists(product);
         
         console.log(product);
         if (product.groupId) {
