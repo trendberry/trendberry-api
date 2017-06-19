@@ -9,6 +9,10 @@
   "scripts": {
     "start": "node server.js"
   },
+"engines": {
+  "node" : "8.1.0"
+},
+
   "dependencies": {
     "acl": "^0.4.10",
     "async": "^2.1.4",
