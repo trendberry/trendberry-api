@@ -136,9 +136,20 @@ FeedImport.prototype.downloadFeed = function (callback) {
   }
 }
 
-FeedImport.prototype.productExist = function (product) {
-
-}
+FeedImport.prototype.productExists = function (product) {
+  if (product.groupId){
+    return new Promise(function (resolve, reject){
+       Product.findOne({groupId: product.groupId}, function(err, doc){
+         if (err) return resolve(null);
+         if (doc) resolve(doc);
+       });
+    });
+  } else {
+    return new Promise(function (resolve, reject){  
+    resolve(null);  
+} );
+  
+}}
 
 
 FeedImport.prototype.downloadPicture = function (url, callback) {
@@ -286,8 +297,10 @@ FeedImport.prototype.startImport = function () {
           }
           done();
         });
-      }, function () {
+      }, async function () {
         //product.picturesToUpload = pictureFiles;
+       var prod = await self.productExists(product);
+        
         console.log(product);
         if (product.groupId) {
           Product.findOne({
