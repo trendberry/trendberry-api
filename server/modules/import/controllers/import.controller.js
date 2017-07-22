@@ -22,11 +22,12 @@ var _ = require('lodash'),
 var feedImportList = new Map();
 
 exports.test = function(req, res){
-  var testImport = new FeedImport()
-  testImport.downloadFeed(function () {
-  testImport.startImport();
-  res.send('trsd')
-});
+  Shop.find({}, (err, docs) =>{
+    var testImport = new FeedImport(docs[0])
+    testImport.launchImport();
+    res.json(testImport);
+  
+  });
 }
 
 

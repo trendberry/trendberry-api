@@ -8,6 +8,7 @@ var mongoose = require('mongoose'),
   Schema = mongoose.Schema,
   slugify = require('transliteration').slugify,
   config = require(path.resolve('./config/config')),
+  settings = require(path.resolve('./server/modules/settings/lib/settings.js')),
   metaPlugin = require(path.resolve('./server/modules/meta/models/meta.model')),
   picturePlugin = require(path.resolve('./server/modules/pictures/models/pictures.model'));
 
@@ -33,22 +34,10 @@ var CategorySchema = new Schema({
   }
 });
 
-/**
- * Meta Title/Description middleware
- */
-//CategorySchema.plugin(metaPlugin);
 
-/**
- * Picture upload middleware
- */
+CategorySchema.plugin(metaPlugin, settings.category);
 CategorySchema.plugin(picturePlugin, config.uploads.pictures.category);
 
-/**
- * Pre-save middleware
- * Generate slug if empty
- *
- * @param  {Function} next
- */
 CategorySchema.pre('save', function (next, done) {
   if (!this.slug || this.slug.length === 0) {
     this.slug = slugify(this.name);

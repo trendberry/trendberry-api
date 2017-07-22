@@ -1,14 +1,7 @@
 'use strict';
 
-/**
- * Module dependencies.
- */
 var mongoose = require('mongoose'),
   async = require('async');
-
-/**
- * Meta Plugin
- */
 
 module.exports = function metaPlugin(schema, options) {
   schema.add({
@@ -43,24 +36,17 @@ module.exports = function metaPlugin(schema, options) {
   }
 
   schema.pre('save', function (next) {
-    if (!this.meta) {
-      this.meta = {
-        title: undefined,
-        description: undefined
-      };
-    }
-
     // Generate Meta Title with template if it's empty
     if (!this.meta.title) {
-      if (options.title !== undefined) {
-        this.meta.title = this.generateMetaField(options.title);
+      if (options && options.meta && options.meta.title) {
+        this.meta.title = this.generateMetaField(options.meta.title);
       }
     }
 
     // Generate Meta Description with template if it's empty
     if (!this.meta.description) {
-      if (options.description !== undefined) {
-        this.meta.description = this.generateMetaField(options.description);
+      if (options && options.meta && options.meta.description) {
+        this.meta.description = this.generateMetaField(options.meta.description);
       }
     }
     next();

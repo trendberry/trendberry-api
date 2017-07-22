@@ -28,9 +28,25 @@ RuleFile.prototype.save = function () {
   fs.writeFileSync(this.file, JSON.stringify(this.rules));
 }
 
+RuleFile.prototype.structurize = () => {
+
+}
+
+
+
+
 RuleFile.prototype.getRule = function (name) {
   for (var i = 0; i < this.rules.product.param.length; i++) {
     if (this.rules.product.param[i].name.indexOf(name.toLowerCase()) != -1) {
+      return this.rules.product.param[i];
+    }
+  }
+  return null;
+}
+
+RuleFile.prototype.getProp = function (prop) {
+  for (var i = 0; i < this.rules.product.param.length; i++) {
+    if (this.rules.product.param[i].prop.indexOf(prop.toLowerCase()) != -1) {
       return this.rules.product.param[i];
     }
   }
@@ -88,5 +104,38 @@ RuleFile.prototype.getCategory = function (value) {
     }
   }
 }
+
+RuleFile.prototype.fillObject = function (obj, source) {
+  if (!obj || !source) return null;
+  var self = this;
+  var rule;
+  for (i in obj) {
+    this.rules.product.param.forEach((param) => {
+      if (param.prop.indexOf(param) != -1) {
+        return rule = param;
+      }
+    });
+    if (rule) {
+      var cmp;
+      rule.name.forEach((name) => {
+        if (source[name]) {
+          return cmp = source[name];
+        }
+      });
+      cmpValue = rule.compare.find((compare) => {
+        return (compare.match == cmp.toLowerCase() || new RegExp(compare.matchEx, 'i').test(cmp));
+      });
+      if (cmpValue) {
+        if (isArray(obj[i])) {
+          obj[i].push(cmpValue.value);
+        }
+        obj[i] = cmpValue.value;
+      }
+      rule = undefined;
+    }
+  }
+  return obj;
+}
+
 
 module.exports = RuleFile;

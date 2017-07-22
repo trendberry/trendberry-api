@@ -54,6 +54,7 @@ module.exports = {
   },
   import: {
     downloadPath: '',
+    logPath: './logs/import',
     maxParallelCount: 1
   }
 };

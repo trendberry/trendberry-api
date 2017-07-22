@@ -4,6 +4,7 @@ var mongoose = require('mongoose'),
   Schema = mongoose.Schema,
   path = require('path'),
   config = require(path.resolve('./config/config')),
+  crypto = require('crypto'),
   metaPlugin = require(path.resolve('./server/modules/meta/models/meta.model')),
   picturePlugin = require(path.resolve('./server/modules/pictures/models/pictures.model'));
 
@@ -18,13 +19,26 @@ var SkuSchema = new Schema({
   url: String,
   material: [String],
   size: [String],
+  hash: String,
 });
 
+//SkuSchema.plugin(picturePlugin, config.uploads.pictures.product);
 
+SkuSchema.methods.makeHash = function(){
+  var hashData = '';
+  for (var i in this.schema.obj){
+    if (this[i]){
+      hashData = hashData.concat(this[i])  
+    }
+  }
+  this.hash = crypto.createHash('md5').update(hashData).digest("hex");
+}
 
 SkuSchema.pre('save', function (next) {
-  var bla = this;
-  next();
+  if (this.isModified() || this.isNew){
+    this.makeHash();
+  }
+  next(); 
 });
 
 module.exports = function skuPlugin(schema, options) {

@@ -3,8 +3,7 @@
 /**
  * Module dependencies.
  */
-var _ = require('lodash'),
-  fs = require('fs'),
+var fs = require('fs'),
   path = require('path'),
   errorHandler = require(path.resolve('./server/core/controllers/errors.controller')),
   mongoose = require('mongoose'),
@@ -39,7 +38,7 @@ exports.read = function (req, res) {
   // convert mongoose document to JSON
   var category = req.category ? req.category.toJSON() : {};
 
-  res.jsonp(category);
+  res.json(category);
 };
 
 /**
@@ -49,7 +48,7 @@ exports.update = function (req, res) {
 
   var category = req.category;
 
-  category = _.extend(category, req.body);
+  category = Object.assign(category, req.body);
 
   category.save(function (err) {
     if (err) {

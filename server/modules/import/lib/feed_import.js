@@ -9,6 +9,7 @@ var http = require('http'),
   contentDisposition = require('content-disposition'),
   XmlStream = require('xml-stream'),
   RuleFile = require(path.resolve('./server/modules/import/lib/import_rules')),
+  ImportLog = require(path.resolve('./server/modules/import/lib/import_log')),
   mongoose = require('mongoose'),
   Product = mongoose.model('Product'),
   Category = mongoose.model('Category'),
@@ -16,6 +17,13 @@ var http = require('http'),
   Vendor = mongoose.model('Vendor'),
   crypto = require('crypto'),
   config = require(path.resolve('./config/config'));
+
+
+//Product.find({}, function(err, docs){
+//  docs.forEach(function(doc){
+//  doc.remove()
+// })
+//});
 
 
 var getCategoriesMask = function (callback) {
@@ -55,14 +63,7 @@ getCategoriesMask(function (err, categories) {
 
 
 function FeedImport(source, rules) {
-  if (typeof source === 'string') {
-    this.source = {
-      feedUrl: source,
-      lastUpdate: 0
-    }
-  } else {
-    this.source = source;
-  }
+  this.source = source;
   this.rules = new RuleFile(rules);
   this.createdDate = Date.now();
   this.downloadStartedDate = 0;
@@ -77,15 +78,21 @@ function FeedImport(source, rules) {
     updated: 0,
     deleted: 0,
     blocked: 0,
-    ignored: 0
+    ignored: 0,
+    duplicate: 0
   };
+  this.log = new ImportLog(source.name);
   this.categories = {};
   // this.importStreamFile = {};
   this.processedCategories = {};
+  this.bindEvents();
 }
 
 
 util.inherits(FeedImport, events.EventEmitter);
+
+
+
 
 FeedImport.prototype.downloadFeed = function (callback) {
   //  console.log('downloading from ' + this.source.url);
@@ -137,50 +144,108 @@ FeedImport.prototype.downloadFeed = function (callback) {
 }
 
 FeedImport.prototype.productExists = function (product) {
-  if (product.groupId){
-    return new Promise(function (resolve, reject){
-       Product.findOne({groupId: product.groupId}, function(err, doc){
-         if (err) return resolve(null);
-         if (doc) resolve(doc);
-       });
+  var query = product.groupId ? {
+    name: product.name,
+    groupId: product.groupId
+  } : {
+    name: product.name,
+    'sku.offerId': {
+      $in: [product.sku[0].offerId]
+    }
+  };
+
+  return new Promise((resolve, reject) => {
+    Product.findOne(query, (err, doc) => {
+      var result = {};
+      var state = 'not_found';
+      if (err) return reject(err);
+      if (doc) {
+        result.product = doc;
+        var sku = doc.sku.find((element) => {
+          return element.offerId == product.sku[0].offerId
+        });
+        if (sku) {
+          product.sku[0].makeHash();
+          if (sku.hash == product.sku[0].hash) {
+            state = 'duplicate';
+          } else {
+            state = 'modified';
+          }
+        } else {
+          state = 'new_sku';
+        }
+      }
+      result.state = state;
+      return resolve(result);
     });
-  } else {
-    return new Promise(function (resolve, reject){  
-    resolve(null);  
-} );
-  
-}}
+  });
+
+
+
+
+
+
+  /*
+    if (product.groupId) {
+      return new Promise(function (resolve, reject) {
+        Product.findOne({
+          groupId: product.groupId
+        }, function (err, doc) {
+          if (err) return reject(null);
+          if (doc) return resolve(doc);
+          resolve(null);
+        });
+      });
+    } else {
+      return new Promise(function (resolve, reject) {
+        Product.findOne({
+          name: product.name,
+          'sku.offerId': {
+            $in: [product.sku[0].offerId]
+          }
+        }, function (err, doc) {
+          if (err) return reject(null);
+          if (doc) return resolve(doc);
+          resolve(null);
+        });
+      });
+
+    } */
+}
 
 
 FeedImport.prototype.downloadPicture = function (url, callback) {
+  return new Promise((resolve, reject) => {
 
-  //test
+    //test
 
-  return callback(null, null);
+    return resolve(null);
 
 
-  var dest = config.uploads.product.image.dest;
-  var request = http.get(url, function (response) {
-    if (response.statusCode === 200) {
 
-      //todo retry on error
+    var dest = config.uploads.product.image.dest;
+    var request = http.get(url, function (response) {
+      if (response.statusCode === 200) {
 
-      var fileName = crypto.pseudoRandomBytes(16).toString('hex') + Date.now().toString() + path.extname(url);
-      var file = fs.createWriteStream(path.join(dest, fileName));
-      file.on('finish', function () {
-        callback(null, {
-          destination: dest,
-          filename: fileName
+        //todo retry on error
+
+        var fileName = crypto.pseudoRandomBytes(16).toString('hex') + Date.now().toString() + path.extname(url);
+        var file = fs.createWriteStream(path.join(dest, fileName));
+        file.on('finish', function () {
+          callback(null, {
+            destination: dest,
+            filename: fileName
+          });
         });
-      });
-      file.on('error', function () {
-        fs.unlink(fileName);
-        callback(new Error('picture download failed'), null);
-      });
-      response.pipe(file);
-    } else {
-      callback(new Error(response.statusMessage), null);
-    }
+        file.on('error', function () {
+          fs.unlink(fileName);
+          callback(new Error('picture download failed'), null);
+        });
+        response.pipe(file);
+      } else {
+        callback(new Error(response.statusMessage), null);
+      }
+    });
   });
 }
 
@@ -189,6 +254,7 @@ FeedImport.prototype.importItem = function (item) {
   var params = item.param;
   var picts = item.picture;
   var product = new Product();
+  var sku = product.sku.create();
   product.offerId = item.$.id;
   product.groupId = item.$.group_id;
   var rule;
@@ -197,30 +263,33 @@ FeedImport.prototype.importItem = function (item) {
   var finalCategoryTree = [];
   product.name = item.name.replace(" " + item.vendor, "");
   //  product.name = item.name;
+  sku.offerId = item.$.id;
+  this.rules.fillObject(sku, item);
+
+
   category = this.rules.getCategory(product.name);
   if (!category) {
-    return self.emit('itemImportNeedUser', item);
+    return self.emit('noCategory', item);
   }
-  for (var i = 0; i < params.length; i++) {
-    rule = this.rules.getRule(params[i].$.name)
-    if (rule) {
-      value = this.rules.getValue(rule, params[i].$text);
-      if (value) {
-        if (Array.isArray(product[rule.prop])) {
-          product[rule.prop].push(value);
-        } else {
-          product[rule.prop] = value;
-        }
-      }
-    }
-  }
+  /* for (var i = 0; i < params.length; i++) {
+     rule = this.rules.getRule(params[i].$.name)
+     if (rule) {
+       value = this.rules.getValue(rule, params[i].$text);
+       if (value) {
+         if (Array.isArray(product[rule.prop])) {
+           product[rule.prop].push(value);
+         } else {
+           product[rule.prop] = value;
+         }
+       }
+     }
+   }*/
 
   if (!product.age) {
     if (self.categories[item.categoryId]) {
       rule = this.rules.getRule('age');
       value = this.rules.getValue(rule, self.categories[item.categoryId]);
       if (!value) {
-        this.importStats.ignored++;
         return self.emit('itemImportIgnored', item);
       } else {
         product.age = value;
@@ -236,8 +305,7 @@ FeedImport.prototype.importItem = function (item) {
         rule = this.rules.getRule('gender');
         value = this.rules.getValue(rule, self.categories[item.categoryId]);
         if (!value) {
-          this.importStats.ignored++;
-          return self.emit('itemImportIgnored', item);
+          return this.emit('itemImportIgnored', item);
         } else {
           product.sex = value;
         }
@@ -263,31 +331,58 @@ FeedImport.prototype.importItem = function (item) {
   finalCategoryTree.push(category.category_name);
 
   product.description = item.description;
-  product.price = parseInt(item.price);
-  product.oldPrice = item.oldprice !== undefined ? parseInt(item.oldprice) : null;
-  product.url = item.url;
-  //product.shop = this.source.id !== undefined ? this.source : null;
-  product.shop = new Shop();
-  this.productImportQueue.push({
+  sku.price = parseInt(item.price);
+  sku.oldPrice = item.oldprice !== undefined ? parseInt(item.oldprice) : null;
+  sku.url = item.url;
+  product.shop = this.source !== undefined ? this.source : null;
+  product.sku.push(sku);
+  //this.productImportQueue.push({
+  //  product: product,
+  //  pictures: picts,
+  //  categoryTree: finalCategoryTree
+  // });
+  this.addProduct({
     product: product,
     pictures: picts,
     categoryTree: finalCategoryTree
+  }, () => {
+    self.xmlStream.resume();
   });
 }
 
 FeedImport.prototype.startImport = function () {
   var self = this;
+  this.bla = true;
   this.importStartDate = Date.now();
   this._importTime = process.hrtime();
   this.productImportQueue = async.queue(function (data, callback) {
     var pictureFiles = [];
-    self.processCategory(data.categoryTree, data.product, function (product) {
+    self.processCategory(data.categoryTree, data.product, async function (product) {
       if (!product) {
         console.log('cant get category');
         return callback();
       }
-      console.log(product);
-      //  return callback();
+      var isExists = await self.productExists(product);
+      if (isExists.state == 'duplicate') {
+        self.importStats.duplicate++;
+        self.emit('itemIsDuplicate', data.product);
+        return callback();
+      }
+      if (isExists.state == 'modified') {
+        Object.assign(isExists.product, product);
+      }
+      if (isExists.state == 'new_sku') {
+        isExists.product.addSku(product.sku[0]);
+      }
+      if (isExists.state == 'not_found') {
+        product.save(() => callback());
+      } else {
+        isExists.product.save(() => callback());
+      }
+
+      //  return
+
+
       async.eachSeries(data.pictures, function (picture, done) {
         self.downloadPicture(picture, function (err, file) {
           if (!err) {
@@ -297,51 +392,23 @@ FeedImport.prototype.startImport = function () {
           }
           done();
         });
-      },  function () {
+      }, async function () {
         //product.picturesToUpload = pictureFiles;
-       var prod =  self.productExists(product);
-        
+
+
+
         console.log(product);
-        if (product.groupId) {
-          Product.findOne({
-            groupId: product.groupId
-          }).exec(function (err, doc) {
-            if (doc) {
-              if (doc.offerId != product.offerId) {
-                doc.addSku(product);
-              } else {
-
-                //Object.assign(doc, product);
-              }
-              doc.save(function (err, doc) {
-                if (err) {
-                  var bla = {}
-                }
-              });
-            } else {
-              product.save(function (err) {
-                if (err) {
-                  console.log(err)
-                }
-              });
-            }
-            callback();
-          });
-        } else {
 
 
 
 
-          product.save(function (err) {
-            if (err) {
-              console.log(err)
-            }
-          });
-          //  product.save(function () {
-          //  self.importStats.new++;
-          //  self.workTime = self.workTime + process.hrtime(self._importTime)[0];
-          callback();
-        }
+
+
+        //  product.save(function () {
+        //  self.importStats.new++;
+        //  self.workTime = self.workTime + process.hrtime(self._importTime)[0];
+        //  callback();
+
         // });
       });
     });
@@ -374,9 +441,11 @@ FeedImport.prototype.startImport = function () {
 
   this.xmlStream.collect('picture');
   this.xmlStream.collect('param');
-  this.xmlStream.on('endElement: offer', function (item) {
+
+
+  this.xmlStream.on('endElement: offer', (item) => {
+    self.xmlStream.pause();
     if (self.rules.inBlacklist(item.name)) {
-      self.importStats.blocked++;
       return self.emit('itemImportBlocked', item);
     };
 
@@ -384,25 +453,113 @@ FeedImport.prototype.startImport = function () {
       case item.vendor:
       case item.picture:
       case item.price:
-        self.importStats.ignored++;
         return self.emit('itemImportIgnored', item);
     }
+
     self.importItem(item);
+
   });
-  this.xmlStream.on('end', function () {
-    // self.source.lastUpdate = Date.now;
+
+  this.xmlStream.on('end', () => {
+    this._parsed = true;
     console.log('stream parsed');
+    console.log('import time: ' + process.hrtime(self._importTime)[0] + 's');
+    console.log(self.getInfo());
   });
 }
+
+FeedImport.prototype.addProduct = async function (data) {
+
+  this.processCategory(data.categoryTree, data.product, async(product) => {
+    if (!product) {
+      return this.emit('noCategory', data.product)
+    }
+    var isExists = await this.productExists(product);
+    if (isExists.state == 'duplicate') {
+      return this.emit('itemIsDuplicate', data.product);
+    }
+    if (isExists.state == 'modified') {
+      Object.assign(isExists.product, product);
+    }
+    if (isExists.state == 'new_sku') {
+      isExists.product.addSku(product.sku[0]);
+    }
+    if (isExists.state == 'not_found') {
+      product.save(() => this.emit('productSaved', product));
+    } else {
+      isExists.product.save(() => this.emit('productSaved', isExists.product));
+    }
+  });
+}
+
+
+
+FeedImport.prototype.bindEvents = function () {
+  var wrapResume = (stream) =>
+    setTimeout(() => stream.resume(), 1);
+
+  this.on('productSaved', (item) => {
+    this.importStats.new++;
+    this.log.writeLine('product added');
+    this.log.writeLine(item);
+    this.log.separate();         wrapResume(this.xmlStream);
+  });
+  this.on('itemIsDuplicate', (item) => {
+    this.importStats.duplicate++;
+    this.log.writeLine('deplicate');
+    this.log.writeLine(item);
+    this.log.separate();         wrapResume(this.xmlStream);
+
+  });
+  this.on('noCategory', (item) => {
+    this.importStats.ignored++;
+    this.log.writeLine('no category');
+    this.log.writeLine(item);
+    this.log.separate();        wrapResume(this.xmlStream);
+
+  });
+  this.on('itemImportBlocked', (item) => {
+    this.importStats.blocked++;
+    this.log.writeLine('item blocked');
+    this.log.writeLine(item);
+    this.log.separate();        wrapResume(this.xmlStream);
+
+  });
+  this.on('itemImportIgnored', (item) => {
+    this.importStats.ignored++;
+    this.log.writeLine('item ignored');
+    this.log.writeLine(item);
+    this.log.separate();        wrapResume(this.xmlStream);
+  });
+
+  /*this.eventNames().forEach((event) => {
+    this.on(event, () => {
+      if (this._parsed) {
+        this._parsed = false;
+        this.log.writeLine(this.importStats);
+        console.log(this.importStats);
+        this.log.separate();
+      } else {
+        wrapResume(this.xmlStream);
+      }
+    });
+  });*/
+}
+
+FeedImport.prototype.launchImport = async function () {
+  this.log.start();
+  this.downloadFeed(() => {
+    this.startImport();
+  });
+}
+
 
 FeedImport.prototype.processCategory = function (categoryTree, product, callback) {
   var self = this;
   var currentCat = dbCategoriesMask;
   var catParent;
   var pos = 0;
-
-  console.log(categoryTree);
-
+  
   function checkCat() {
     if (pos === categoryTree.length) {
       if (currentCat) {
@@ -496,13 +653,6 @@ FeedImport.prototype.importProgress = function () {
   }
 }
 
-FeedImport.prototype.queuedItemsCount = function () {
-  if (this.productImportQueue) {
-    return this.pictDownloadQueue.length;
-  }
-  return 0;
-}
-
 FeedImport.prototype.getInfo = function () {
   return {
     status: this.state,
@@ -513,15 +663,19 @@ FeedImport.prototype.getInfo = function () {
     workTime: this.workTime,
     streamSize: this.streamLength(),
     streamPos: this.streamPos(),
-    itemsInQueue: this.queuedItemsCount(),
-    importStats: this.importStats
+    importStats: this.importStats,
+    lastUpdate: this.source.lastUpdate
   };
 }
 
-//var testImport = new FeedImport();
+FeedImport.prototype.toJSON = function () {
+  return {
+    id: this.source.id,
+    shopName: this.source.name,
+    state: this.state,
+    lastUptade: this.source.lastUpdate
+  };
+}
 
-//testImport.downloadFeed(function () {
-  // testImport.startImport();
-//});
 
 module.exports = FeedImport;

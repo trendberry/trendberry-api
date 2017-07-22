@@ -1,8 +1,5 @@
 'use strict';
 
-/**
- * Module dependencies.
- */
 var mongoose = require('mongoose'),
   Schema = mongoose.Schema,
   path = require('path'),
@@ -12,10 +9,6 @@ var mongoose = require('mongoose'),
   metaPlugin = require(path.resolve('./server/modules/meta/models/meta.model')),
   picturePlugin = require(path.resolve('./server/modules/pictures/models/pictures.model'));
 
-
-/**
- * Shop Schema
- */
 var ShopSchema = new Schema({
   name: {
     type: String,
@@ -33,19 +26,9 @@ var ShopSchema = new Schema({
   },
 });
 
-ShopSchema.plugin(metaPlugin, settings.meta.shop);
-
-/**
- * Picture upload middleware
- */
+ShopSchema.plugin(metaPlugin, settings.shop);
 ShopSchema.plugin(picturePlugin, config.uploads.pictures.shop);
 
-/**
- * Pre-save middleware
- * Generate slug if empty
- *
- * @param  {Function} next
- */
 ShopSchema.pre('save', function (next, done) {
   if (!this.slug || this.slug.length === 0) {
     this.slug = slugify(this.name);

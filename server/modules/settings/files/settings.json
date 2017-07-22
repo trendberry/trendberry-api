@@ -1,1 +1,15 @@
-{"meta":{"shop":{"title":"this is [name]","description":"mata description"}}}
+{
+    "shop": {
+        "meta": {
+            "title": "this is [name]",
+            "description": "meta description"
+        }
+    },
+    "product": {
+        "meta": {
+            "title": "this is [name]",
+            "description": "meta description"
+        },
+        "pictureLimit": 1
+    }
+}
