@@ -56,7 +56,7 @@ exports.update = function (req, res) {
         message: errorHandler.getErrorMessage(err)
       });
     } else {
-      res.jsonp(category);
+      res.json(category);
     }
   });
 };
@@ -73,7 +73,7 @@ exports.delete = function (req, res) {
         message: errorHandler.getErrorMessage(err)
       });
     } else {
-      res.jsonp(category);
+      res.json(category);
     }
   });
 };
@@ -169,92 +169,6 @@ exports.list = function (req, res) {
   });
 };
 
-/**
- * Upload category picture
- */
-exports.pictureCreate = function (req, res) {
-  var category = req.category;
-  var existingImageName;
-  var multerConfig = {
-    dest: './'
-  };
-  // var multerConfig = config.uploads.category.image;
-  // Filtering to upload only images
-  //multerConfig.fileFilter = require(path.resolve('./config/lib/multer')).imageFileFilter;
-  multerConfig.storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-      cb(null, path.resolve('./'))
-    },
-    filename: function (req, file, cb) {
-      crypto.pseudoRandomBytes(16, function (err, raw) {
-        if (err) return cb(err)
-        cb(null, raw.toString('hex') + path.extname(file.originalname))
-      })
-    }
-  });
-
-
-  var upload = multer(multerConfig).single('picture');
-
-  if (category) {
-    uploadImage()
-      .then(updateCategory)
-      .then(function () {
-        res.json(category);
-      })
-      .catch(function (err) {
-        res.status(422).send(err);
-      });
-  } else {
-    res.status(404).send({
-      message: 'Category not found!'
-    });
-  }
-
-  function uploadImage() {
-    return new Promise(function (resolve, reject) {
-      upload(req, res, function (uploadError) {
-        if (uploadError) {
-          reject(errorHandler.getErrorMessage(uploadError));
-        } else {
-          resolve();
-        }
-      });
-    });
-  }
-
-  function updateCategory() {
-    return new Promise(function (resolve, reject) {
-      category.picturesToUpload = req.file;
-      category.save(function (err, thecategory) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
-  }
-
-};
-
-exports.pictureDelete = function (req, res) {
-  var category = req.category;
-  category.picturesToDelete = [req.params.pictureId];
-
-  category.save(function (err, category) {
-    if (err) {
-      return res.status(422).send({
-        message: errorHandler.getErrorMessage(err)
-      });
-    } else {
-      res.jsonp({
-        data: category,
-        pictureId: req.params.pictureId
-      });
-    }
-  });
-};
 
 /**
  * Category middleware

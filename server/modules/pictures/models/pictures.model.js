@@ -8,6 +8,7 @@ var mongoose = require('mongoose'),
   gm = require('gm'),
   path = require('path'),
   async = require('async'),
+  crypto = require('crypto'),
   config = require(path.resolve('./config/config'));
 
 
@@ -37,81 +38,83 @@ module.exports = function picturePlugin(schema, options) {
     }
   }
 
-  /**
-   * Append new pictures
-   * @param pictures [array|object]
-   */
-  schema.virtual('picturesToUpload').set(function (pictures) {
-
-    if (!this.picture) this.picture = [];
-
-    if (!Array.isArray(pictures)) pictures = [pictures];
-
-    for (var i = 0; i < pictures.length; i++) {
-      if (pictures[i].filename) {
-        this.picture.push({
-          name: pictures[i].filename
-        });
-      }
-    }
-  });
-
-  /**
-   * Delete images
-   */
-  schema.virtual('picturesToDelete').set(function (picturesIds) {
-    console.log(picturesIds);
-    if (this.picture && this.picture.length > 0 && Array.isArray(picturesIds)) {
-      this.picture = this.picture.filter(function (value) {
-        if (picturesIds.indexOf(value._id.toString()) === -1) {
-          return true;
-        } else {
-          fs.unlink(path.resolve(options.picturesPath, value.name), function (err) {
-            console.log(err);
-          });
-          return false;
-        }
-      })
-    }
-  });
-
-  /**
-   * Generate dominant color for image if it's missing
-   */
-  schema.pre('save', function (next) {
-    var savePict = function (picture, callback) {
-      if (!picture.name || picture.color != null) {
-        return callback();
-      }
-      gm(path.resolve(options.picturesPath, picture.name))
+  schema.methods._getMainColor = function (picture) {
+    return new Promise((resolve, reject) => {
+      gm(picture.source)
         .resize(15, 15)
         .colors(2)
         .toBuffer('RGB', function (error, buffer) {
-          console.log(buffer);
-          picture.color = '#' + buffer.slice(0, 3).toString('hex');
-          callback();
+          if (error) {
+            return reject(error);
+          }
+          return resolve('#' + buffer.slice(0, 3).toString('hex'));
         });
-    };
-    if (this.picture.length > 0)
-      async.eachSeries(this.picture, function (picture, callback) {
-        if (!picture.color)
-          savePict(picture, callback);
-        else
-          callback();
-      }, function () {
-        next();
-      });
-    else
-      next();
-  });
+    });
+  }
 
-  /**
-   * Delete all images after doc is removed
-   * TODO: need to move it to schema.pre('remove')
-   */
+  schema.methods._resizeAndSave = function (picture) {
+    return new Promise((resolve, reject) => {
+      var fileName = crypto.pseudoRandomBytes(16).toString('hex') + Date.now().toString() + path.extname(picture.name);
+      gm(picture.source)
+        .resize(options.requiredSize.x, options.requiredSize.x)
+        .toBuffer(function (error, buffer) {
+          if (error) {
+            return reject(error);
+          }
+          fs.writeFile(path.join(options.path, fileName), buffer, (err) => {
+            if (err) {
+              return reject(err);
+            }
+            return resolve(fileName);
+          });
+        });
+    });
+  }
+
+  schema.methods.addPicture = async function (picture) {
+    var pict = {};
+    if (typeof picture === 'string') {
+      pict.name = path.basename(picture);
+      pict.source = fs.readFileSync(picture);
+    } else {
+      pict.name = picture.originalname;
+      pict.source = picture.buffer;
+    }
+
+    try {
+      var result = await Promise.all([this._resizeAndSave(pict), this._getMainColor(pict)]);
+      var newPicture = this.picture.create({
+        name: result[0],
+        color: result[1]
+      });
+      this.picture.push(newPicture);
+      return this.picture;
+    } catch (e) {
+      return {
+        error: e.message
+      }
+    }
+  }
+
+  schema.methods.deletePicture = function (picture) {
+    try {
+      var result = this.picture.pull(picture);
+      fs.unlinkSync(path.join(options.path, picture.name));
+      return result;
+    } catch (e) {
+      return ({
+        error: e.message
+      });
+    }
+  }
+
   schema.post('remove', function (doc) {
     for (var i = 0; i < this.picture.length; i++) {
-      fs.unlink(path.resolve(options.picturesPath, doc.picture[i].name), function (err) {});
+      fs.unlink(path.join(options.path, doc.picture[i].name), function (err) {
+        if (err) {
+          console.log(err.message);
+        }
+      });
     }
   });
 };

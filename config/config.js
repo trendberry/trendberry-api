@@ -26,7 +26,10 @@ module.exports = {
       },
       shop: {
         path: './public/uploads/pictures/shops/',
-        requiredSize: [640, 640]
+        requiredSize: {
+          x: 640,
+          y: 640
+        }
       },
       vendor: {
         path: './public/uploads/pictures/vendors/',

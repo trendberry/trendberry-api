@@ -4,7 +4,9 @@
  * Module dependencies
  */
 var categoriesPolicy = require('../policies/categories.policy'),
-  categories = require('../controllers/categories.controller');
+  categories = require('../controllers/categories.controller'),
+  path = require('path'),
+  pictures = require(path.resolve('./server/modules/pictures/controllers/pictures.controller'));  
 
 module.exports = function (app) {
   // Categories collection routes
@@ -19,13 +21,14 @@ module.exports = function (app) {
     .put(categories.update)
     .delete(categories.delete);
 
-  // Category pictures routes
-  app.route('/api/categories/:categoryId/pictures')//.all(categoriesPolicy.isAllowed)
-    .post(categories.pictureCreate);
+  // Picture routes
+  app.route('/api/categories/:categoryId/picture')
+    .get(pictures.list)
+    .post(pictures.uploadPicture);
 
-  // Single category routes
-  app.route('/api/categories/:categoryId/pictures/:pictureId')//.all(categoriesPolicy.isAllowed)
-    .delete(categories.pictureDelete);
+  app.route('/api/categories/:categoryId/picture/:pictureId')
+    .get(pictures.getPicture)
+    .delete(pictures.deletePicture);  
 
   // Finish by binding the Category middleware
   app.param('categoryId', categories.categoryByID);

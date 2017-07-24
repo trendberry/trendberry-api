@@ -7,6 +7,7 @@ var fs = require('fs'),
   crypto = require('crypto');
 
 var multerConfig = {};
+
 multerConfig.fileFilter = function (req, file, callback) {
   if (file.mimetype !== 'image/png' && file.mimetype !== 'image/jpg' && file.mimetype !== 'image/jpeg' && file.mimetype !== 'image/gif') {
     var err = new Error();
@@ -15,7 +16,7 @@ multerConfig.fileFilter = function (req, file, callback) {
   }
   callback(null, true);
 };
-multerConfig.storage = multer.diskStorage({
+/*multerConfig.storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, path.resolve(config.uploads.pictures.temp.path))
   },
@@ -25,8 +26,12 @@ multerConfig.storage = multer.diskStorage({
       cb(null, raw.toString('hex') + path.extname(file.originalname))
     })
   }
-});
+});*/
 
-module.exports = function (app, db) {
-  //app.use(multer(multerConfig).single('picture'));
+multerConfig.storage = multer.memoryStorage();
+
+multerConfig.limits = {
+  fileSize: 1 * 1024 * 1024
 }
+
+module.exports = multerConfig;

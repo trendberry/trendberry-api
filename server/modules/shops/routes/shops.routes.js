@@ -22,8 +22,8 @@ module.exports = function(app) {
     .post(pictures.uploadPicture);
 
   app.route('/api/shops/:shopId/picture/:pictureId')
- //   .get(pictures.getPicture)
- //   .delete(pictures.deletePicture);
+    .get(pictures.getPicture)
+    .delete(pictures.deletePicture);
 
   // Finish by binding the Shop middleware
   app.param('shopId', shops.shopByID);

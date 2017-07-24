@@ -9,12 +9,7 @@ var path = require('path'),
   errorHandler = require(path.resolve('./server/core/controllers/errors.controller'));
 
 exports.create = function (req, res) {
-  try {
-    settings = JSON.parse(req.body);
-  } catch (e) {
-    return res.status(400).send(errorHandler.getErrorMessage(e));
-  }
-  res.json(settings);
+  res.json(settings.renew(req.body));
 }
 
 exports.read = function (req, res) {
@@ -22,10 +17,5 @@ exports.read = function (req, res) {
 };
 
 exports.update = function (req, res) {
-  try {
-    Object.assign(settings, JSON.parse(req.body));
-  } catch (e) {
-    return res.status(400).send(errorHandler.getErrorMessage(e));
-  }
-  res.json(settings);
+  res.json(settings.update(req.body));
 }
