@@ -16,6 +16,7 @@ var http = require('http'),
   Shop = mongoose.model('Shop'),
   Vendor = mongoose.model('Vendor'),
   crypto = require('crypto'),
+   fghj  = require(path.resolve('./server/modules/import/lib/category_mask')),
   config = require(path.resolve('./config/config'));
 
 

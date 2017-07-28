@@ -9,7 +9,8 @@
     "node": "8.1.4"
   },
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "debug": "node --inspect server.js"
   },
   "dependencies": {
     "acl": "^0.4.10",

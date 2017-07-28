@@ -7,6 +7,7 @@ var mongoose = require('mongoose'),
   settings = require(path.resolve('./server/modules/settings/lib/settings.js')),
   metaPlugin = require(path.resolve('./server/modules/meta/models/meta.model')),
   skuPlugin = require('./product.sku.model'),
+  slugify = require('transliteration').slugify,
   picturePlugin = require(path.resolve('./server/modules/pictures/models/pictures.model'));
 
 var ProductSchema = new Schema({
@@ -49,9 +50,21 @@ var ProductSchema = new Schema({
   },
 });
 
-ProductSchema.methods.makeHash = function(){
-  var tree = ['name', 'description'];  
+ProductSchema.methods.makeHash = function () {
+  var tree = ['name', 'description'];
 }
+
+ProductSchema.pre('save', function (next) {
+  this.populate(['category', 'vendor', 'shop'],  (err) => {
+    if (!this.slug || this.slug.length === 0) {
+      var vendorName = (!this.vendor) ? "" : "-" + this.vendor.name;
+      this.slug = 'product-' + slugify(this.name + vendorName + '-' + this._id);
+      next();
+    } else {
+      next();
+    }
+  })
+});
 
 ProductSchema.plugin(metaPlugin, settings.product);
 //ProductSchema.plugin(picturePlugin, config.uploads.pictures.product);

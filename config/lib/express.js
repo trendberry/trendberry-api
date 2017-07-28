@@ -5,12 +5,12 @@ var config = require('../config'),
   path = require('path'),
   express = require('express'),
   bodyParser = require('body-parser'),
-  session = require('express-session'),
+  //session = require('express-session'),
   cookieParser = require('cookie-parser'),
   serverFiles = require('../struct/server.files'),
   methodOverride = require('method-override'),
-  cors = require('cors'),
-  MongoStore = require('connect-mongo')(session);
+  cors = require('cors');
+ // MongoStore = require('connect-mongo')(session);
 
 module.exports.initMiddleware = function (app) {
   app.use(bodyParser.urlencoded({
@@ -28,7 +28,7 @@ module.exports.initModels = function () {
 }
 
 module.exports.initSession = function (app, db) {
-  app.use(session({
+ /* app.use(session({
     secret: config.session.secret,
     saveUninitialized: true,
     resave: true,
@@ -40,7 +40,7 @@ module.exports.initSession = function (app, db) {
       mongooseConnection: db.connection,
       collection: config.sessionCollection
     })
-  }));
+  }));*/
 };
 
 module.exports.initConfigs = function (app, db) {

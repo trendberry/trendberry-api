@@ -6,8 +6,7 @@ module.exports = {
     port: process.env.PORT || 8080
   },
   db: {
-    //  uri: 'mongodb://localhost:27017/tb-admin',
-    // uri: 'mongodb://trendberry_user:admin123@ds145828.mlab.com:45828/trendberry',
+    // uri: 'mongodb://localhost:27017/tb-admin',
     uri: 'mongodb://trendberry_user:admin123@cluster0-shard-00-00-zbrf4.mongodb.net:27017,cluster0-shard-00-01-zbrf4.mongodb.net:27017,cluster0-shard-00-02-zbrf4.mongodb.net:27017/trendberry_data?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin',
     options: {}
   },
