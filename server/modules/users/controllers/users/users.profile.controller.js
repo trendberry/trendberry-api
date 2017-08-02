@@ -81,7 +81,7 @@ exports.changeProfilePicture = function (req, res) {
     });
   }
 
-  function uploadImage () {
+  function uploadImage() {
     return new Promise(function (resolve, reject) {
       upload(req, res, function (uploadError) {
         if (uploadError) {
@@ -93,7 +93,7 @@ exports.changeProfilePicture = function (req, res) {
     });
   }
 
-  function updateUser () {
+  function updateUser() {
     return new Promise(function (resolve, reject) {
       user.profileImageName = req.file.filename;
       user.save(function (err, theuser) {
@@ -106,7 +106,7 @@ exports.changeProfilePicture = function (req, res) {
     });
   }
 
-  function deleteOldImage () {
+  function deleteOldImage() {
     return new Promise(function (resolve, reject) {
       if (existingImageUrl !== User.schema.path('profileImageURL').defaultValue) {
         fs.unlink(existingImageUrl, function (unlinkError) {
@@ -125,7 +125,7 @@ exports.changeProfilePicture = function (req, res) {
     });
   }
 
-  function login () {
+  function login() {
     return new Promise(function (resolve, reject) {
       req.login(user, function (err) {
         if (err) {
@@ -147,6 +147,7 @@ exports.me = function (req, res) {
   var safeUserObject = null;
   if (req.user) {
     safeUserObject = {
+      _id: req.user.id,
       displayName: validator.escape(req.user.displayName),
       provider: validator.escape(req.user.provider),
       username: validator.escape(req.user.username),

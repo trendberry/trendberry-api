@@ -19,26 +19,34 @@ var SkuSchema = new Schema({
   url: String,
   material: [String],
   size: [String],
-  hash: String,
+  _hash: String
 });
 
-//SkuSchema.plugin(picturePlugin, config.uploads.pictures.product);
+SkuSchema.plugin(picturePlugin, config.uploads.pictures.product);
 
-SkuSchema.methods.makeHash = function(){
+SkuSchema.methods.makeHash = function () {
   var hashData = '';
-  for (var i in this.schema.obj){
-    if (this[i]){
-      hashData = hashData.concat(this[i])  
+  for (var i in this.schema.obj) {
+    if (this[i]) {
+      hashData = hashData.concat(this[i])
     }
   }
-  this.hash = crypto.createHash('md5').update(hashData).digest("hex");
+  this._hash = crypto.createHash('md5').update(hashData).digest("hex");
 }
 
-SkuSchema.pre('save', function (next) {
-  if (this.isModified() || this.isNew){
+SkuSchema.virtual('hash').get(function () {
+  if (!this._hash) {
     this.makeHash();
   }
-  next(); 
+  return this._hash;
+});
+
+
+SkuSchema.pre('save', function (next) {
+  if (this.isModified() || this.isNew) {
+    this.makeHash();
+  }
+  next();
 });
 
 module.exports = function skuPlugin(schema, options) {
@@ -54,7 +62,9 @@ module.exports = function skuPlugin(schema, options) {
         }
       });
       if (doc) {
-        doc = sku;
+        if (doc.hash != sku.hash) {
+          Object.assign(doc, sku)
+        }
       } else {
         this.sku.push(sku);
       }

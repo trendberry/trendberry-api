@@ -7,6 +7,7 @@ var mongoose = require('mongoose'),
   settings = require(path.resolve('./server/modules/settings/lib/settings.js')),
   metaPlugin = require(path.resolve('./server/modules/meta/models/meta.model')),
   skuPlugin = require('./product.sku.model'),
+  crypto = require('crypto'),
   slugify = require('transliteration').slugify,
   picturePlugin = require(path.resolve('./server/modules/pictures/models/pictures.model'));
 
@@ -44,18 +45,30 @@ var ProductSchema = new Schema({
     ref: 'Shop'
   },
   hash: String,
-  created: {
-    type: Date,
-    default: Date.now
-  },
 });
 
+ProductSchema.methods.assignBase = function (source) {
+  source.hash = '';
+  for (let field in this.schema.obj) {
+    if (source[field]) this[field] = source[field];
+  }
+  return this;
+};
+
 ProductSchema.methods.makeHash = function () {
-  var tree = ['name', 'description'];
+  var hashData = '';
+  var tree = Object.assign({}, this.schema.obj);
+  ['groupId', 'slug', 'shop', 'hash'].forEach((field) => delete tree[field]);
+  for (var i in tree) {
+    if (this[i]) {
+      hashData = hashData.concat(this[i])
+    }
+  }
+  this.hash = crypto.createHash('md5').update(hashData).digest("hex");
 }
 
 ProductSchema.pre('save', function (next) {
-  this.populate(['category', 'vendor', 'shop'],  (err) => {
+  this.populate(['category', 'vendor', 'shop'], (err) => {
     if (!this.slug || this.slug.length === 0) {
       var vendorName = (!this.vendor) ? "" : "-" + this.vendor.name;
       this.slug = 'product-' + slugify(this.name + vendorName + '-' + this._id);

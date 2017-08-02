@@ -8,5 +8,6 @@ typings/
 typings.json
 
 
-
+logs/
 package-lock.json
+yarn.lock

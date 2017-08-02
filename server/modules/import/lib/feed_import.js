@@ -16,13 +16,12 @@ var http = require('http'),
   Shop = mongoose.model('Shop'),
   Vendor = mongoose.model('Vendor'),
   crypto = require('crypto'),
-   fghj  = require(path.resolve('./server/modules/import/lib/category_mask')),
   config = require(path.resolve('./config/config'));
 
 
 //Product.find({}, function(err, docs){
-//  docs.forEach(function(doc){
-//  doc.remove()
+//docs.forEach(function(doc){
+//doc.remove()
 // })
 //});
 
@@ -154,64 +153,7 @@ FeedImport.prototype.productExists = function (product) {
       $in: [product.sku[0].offerId]
     }
   };
-
-  return new Promise((resolve, reject) => {
-    Product.findOne(query, (err, doc) => {
-      var result = {};
-      var state = 'not_found';
-      if (err) return reject(err);
-      if (doc) {
-        result.product = doc;
-        var sku = doc.sku.find((element) => {
-          return element.offerId == product.sku[0].offerId
-        });
-        if (sku) {
-          product.sku[0].makeHash();
-          if (sku.hash == product.sku[0].hash) {
-            state = 'duplicate';
-          } else {
-            state = 'modified';
-          }
-        } else {
-          state = 'new_sku';
-        }
-      }
-      result.state = state;
-      return resolve(result);
-    });
-  });
-
-
-
-
-
-
-  /*
-    if (product.groupId) {
-      return new Promise(function (resolve, reject) {
-        Product.findOne({
-          groupId: product.groupId
-        }, function (err, doc) {
-          if (err) return reject(null);
-          if (doc) return resolve(doc);
-          resolve(null);
-        });
-      });
-    } else {
-      return new Promise(function (resolve, reject) {
-        Product.findOne({
-          name: product.name,
-          'sku.offerId': {
-            $in: [product.sku[0].offerId]
-          }
-        }, function (err, doc) {
-          if (err) return reject(null);
-          if (doc) return resolve(doc);
-          resolve(null);
-        });
-      });
-
-    } */
+  return Product.findOne(query);
 }
 
 
@@ -369,7 +311,7 @@ FeedImport.prototype.startImport = function () {
         self.emit('itemIsDuplicate', data.product);
         return callback();
       }
-      if (isExists.state == 'modified') {
+      if (isExists.state == 'modified_sku') {
         Object.assign(isExists.product, product);
       }
       if (isExists.state == 'new_sku') {
@@ -470,27 +412,42 @@ FeedImport.prototype.startImport = function () {
 }
 
 FeedImport.prototype.addProduct = async function (data) {
+  var product = await this.processCategory(data.categoryTree, data.product);
 
-  this.processCategory(data.categoryTree, data.product, async(product) => {
-    if (!product) {
-      return this.emit('noCategory', data.product)
+  if (!product) {
+    return this.emit('noCategory', data.product)
+  }
+  var isExists = await this.productExists(product);
+  if (!isExists) {
+    var saved = await product.save();
+    this.emit('productSaved', saved);
+  } else {
+    if (isExists.hash != product.makeHash) {
+      isExists = isExists.assignBase(product);
     }
-    var isExists = await this.productExists(product);
-    if (isExists.state == 'duplicate') {
-      return this.emit('itemIsDuplicate', data.product);
+    
+    
     }
-    if (isExists.state == 'modified') {
-      Object.assign(isExists.product, product);
-    }
-    if (isExists.state == 'new_sku') {
-      isExists.product.addSku(product.sku[0]);
-    }
-    if (isExists.state == 'not_found') {
-      product.save(() => this.emit('productSaved', product));
-    } else {
-      isExists.product.save(() => this.emit('productSaved', isExists.product));
-    }
-  });
+
+  
+
+
+
+
+  if (isExists.state == 'duplicate') {
+    return this.emit('itemIsDuplicate', data.product);
+  }
+  if (isExists.state == 'modified_sku') {
+    Object.assign(isExists.product, product);
+  }
+  if (isExists.state == 'new_sku') {
+    isExists.product.addSku(product.sku[0]);
+  }
+  if (isExists.state == 'not_found') {
+    product.save(() => this.emit('productSaved', product));
+  } else {
+    isExists.product.save(() => this.emit('productSaved', isExists.product));
+  }
 }
 
 
@@ -503,34 +460,39 @@ FeedImport.prototype.bindEvents = function () {
     this.importStats.new++;
     this.log.writeLine('product added');
     this.log.writeLine(item);
-    this.log.separate();         wrapResume(this.xmlStream);
+    this.log.separate();
+    wrapResume(this.xmlStream);
   });
   this.on('itemIsDuplicate', (item) => {
     this.importStats.duplicate++;
     this.log.writeLine('deplicate');
     this.log.writeLine(item);
-    this.log.separate();         wrapResume(this.xmlStream);
+    this.log.separate();
+    wrapResume(this.xmlStream);
 
   });
   this.on('noCategory', (item) => {
     this.importStats.ignored++;
     this.log.writeLine('no category');
     this.log.writeLine(item);
-    this.log.separate();        wrapResume(this.xmlStream);
+    this.log.separate();
+    wrapResume(this.xmlStream);
 
   });
   this.on('itemImportBlocked', (item) => {
     this.importStats.blocked++;
     this.log.writeLine('item blocked');
     this.log.writeLine(item);
-    this.log.separate();        wrapResume(this.xmlStream);
+    this.log.separate();
+    wrapResume(this.xmlStream);
 
   });
   this.on('itemImportIgnored', (item) => {
     this.importStats.ignored++;
     this.log.writeLine('item ignored');
     this.log.writeLine(item);
-    this.log.separate();        wrapResume(this.xmlStream);
+    this.log.separate();
+    wrapResume(this.xmlStream);
   });
 
   /*this.eventNames().forEach((event) => {
@@ -555,8 +517,68 @@ FeedImport.prototype.launchImport = async function () {
 }
 
 
-FeedImport.prototype.processCategory = function (categoryTree, product, callback) {
-  var self = this;
+FeedImport.prototype.processCategory = async function (categoryTree, product) {
+  var chainTree = categoryTree.map((current, index, array) => {
+    return array.slice(0, ++index).join('/');
+  });
+
+  var categories = await Category.aggregate()
+    .match({
+      "name": {
+        $in: categoryTree
+      }
+    })
+    .graphLookup({
+      from: "categories",
+      startWith: "$parent",
+      connectFromField: "parent",
+      connectToField: "_id",
+      as: "ancestors"
+    })
+    .project({
+      "name": 1,
+      "tree": {
+        $reduce: {
+          "input": {
+            $reverseArray: "$ancestors.name"
+          },
+          initialValue: '$name',
+          in: {
+            $concat: ['$$this', '/', '$$value']
+          }
+        }
+      },
+    })
+    .match({
+      "tree": {
+        $in: chainTree
+      }
+    }).exec();
+
+  if (categories.length !== categoryTree.length) {
+    var categoriesToAdd = categoryTree.slice(categories.length).map((item) => {
+      return new Category({
+        name: item
+      });
+    });
+    categoriesToAdd.forEach((item, index, array) => {
+      item.parent = (index == 0) ? categories[categories.length - 1] : array[index - 1];
+    });
+    await Category.create(categoriesToAdd);
+    categories = categories.concat(categoriesToAdd);
+  }
+
+  product.category = categories;
+  return product;
+
+
+
+
+
+
+
+
+  /* var self = this;
   var currentCat = dbCategoriesMask;
   var catParent;
   var pos = 0;
@@ -605,7 +627,7 @@ FeedImport.prototype.processCategory = function (categoryTree, product, callback
   } else {
     product.category.push(this.processedCategories[categoryTree.toString()]);
     callback(product);
-  }
+  }*/
 }
 
 FeedImport.prototype.isPaused = function () {
