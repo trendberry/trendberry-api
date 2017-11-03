@@ -23,11 +23,11 @@ var http = require('http'),
 
 
 
-Product.find({}, function(err, docs){
-docs.forEach(function(doc){
+//Product.find({}, function(err, docs){
+//docs.forEach(function(doc){
 //doc.remove()
- })
-});
+// })
+//});
 
 
 /*Vendor.find({}, function(err, docs){
