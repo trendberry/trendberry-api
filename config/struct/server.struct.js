@@ -7,5 +7,6 @@ module.exports = {
   models: 'server/modules/*/models/**/*.js',
   routes: 'server/modules/*/routes/**/*.js',
   config: 'server/modules/*/config/*.js',
-  policies: 'server/modules/*/policies/*.js'
-}
+  policies: 'server/modules/*/policies/*.js',
+  sockets: 'server/modules/*/sockets/**/*.js' 
+};

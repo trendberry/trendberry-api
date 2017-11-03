@@ -10,7 +10,6 @@
             "title": "this is [name]",
             "description": "meta description"
         },
-        "slug": "product-[name]-[vendor.name]-[_id]",
         "pictureLimit": 1
     }
 }

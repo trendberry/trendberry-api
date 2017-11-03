@@ -31,12 +31,10 @@ module.exports = function () {
         });
       }
 
-      const payload = {
-        sub: user._id
-      };
-      
+      var payload = {};
+      payload.sub = user._id;
+      if (user.roles == 'admin') payload.admin = true;
       const token = jwt.sign(payload, config.jwtSecret);
-      
       return done(null, user, token);
     });
   }));

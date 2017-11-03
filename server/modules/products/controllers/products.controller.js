@@ -6,14 +6,13 @@
 var path = require('path'),
   mongoose = require('mongoose'),
   Product = mongoose.model('Product'),
-  async = require('async'),
   config = require(path.resolve('./config/config')),
   errorHandler = require(path.resolve('./server/core/controllers/errors.controller'));
-
 
 /**
  * Create a Product
  */
+
 exports.create = function (req, res) {
   var product = new Product(req.body);
 
@@ -76,56 +75,41 @@ exports.delete = function (req, res) {
 /**
  * List of Products
  */
-exports.list = function (req, res) {
+exports.list = async(req, res) => {
   var sort = req.query._sort ? req.query._sort : config.pagination.default.sort;
   var page = req.query._page ? parseInt(req.query._page, 10) : config.pagination.default.page;
   var limit = req.query._limit ? parseInt(req.query._limit, 10) : config.pagination.default.limit;
   if (req.query._order === 'DESC') {
     sort = '-' + sort;
   }
+  var list = {
+    count: 0,
+    items: []
+  };
   var query = {};
-  if (req.query.q !== undefined) {
+  if (req.query.q) {
     query.name = {
       '$regex': req.query.q,
       '$options': 'i'
     };
   };
 
-  async.series([
-    function (callback) {
-      Product.find(query).count(function (err, count) {
-        if (count != 0) {
-          callback(err, count);
-        } else {
-          callback(new Error('no products found'), count);
-        }
-      });
-    },
-    function (callback) {
-      Product.find(query).sort(sort).skip((page - 1) * limit).limit(limit).populate(['category', 'shop', 'vendor']).exec(function (err, products) {
-        callback(err, products);
-      });
+  try {
+    list.count = await Product.count(query);
+    if (list.count != 0) {
+      list.items = await Product.find(query).sort(sort).skip((page - 1) * limit).limit(limit).populate(['category', 'shop', 'vendor', {
+        path: 'meta',
+        select: '-document'
+      }]).exec();
     }
-  ], function (err, results) {
-    if (err) {
-      if (err.message === 'no products found') {
-        res.setHeader('X-Total-Count', 0);
-        return res.json({
-          count: 0,
-          items: []
-        });
-      }
-      return res.status(422).send({
-        message: errorHandler.getErrorMessage(err)
-      });
-    }
-    res.setHeader('X-Total-Count', results[0]);
-    res.json({
-      count: results[0],
-      items: results[1]
+    return res.json(list);
+  } catch (e) {
+    return res.status(422).send({
+      message: errorHandler.getErrorMessage(e)
     });
-  });
+  }
 };
+
 
 /**
  * Product middleware
@@ -138,7 +122,7 @@ exports.productByID = function (req, res, next, id) {
     });
   }
 
-  Product.findById(id).populate(['category', 'shop', 'vendor']).exec(function (err, product) {
+  Product.findById(id).populate(['category', 'shop', 'vendor', 'meta']).exec(function (err, product) {
     if (err) {
       return next(err);
     } else if (!product) {

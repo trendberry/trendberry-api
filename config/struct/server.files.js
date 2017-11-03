@@ -5,7 +5,7 @@ var serverStruct = require('./server.struct'),
 
 var getPaths = function (pattern) {
   return glob.sync(pattern);
-}
+};
 
 module.exports = {
   core: {
@@ -15,5 +15,6 @@ module.exports = {
   routes: getPaths(serverStruct.routes),
   config: getPaths(serverStruct.config),
   policies: getPaths(serverStruct.policies),
+  sockets: getPaths(serverStruct.sockets),
   getPaths: getPaths
-}
+};

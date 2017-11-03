@@ -38,7 +38,7 @@ var CategorySchema = new Schema({
 CategorySchema.plugin(metaPlugin, settings.category);
 CategorySchema.plugin(picturePlugin, config.uploads.pictures.category);
 
-CategorySchema.pre('save', function (next, done) {
+CategorySchema.pre('save', function (next) {
   if (!this.slug || this.slug.length === 0) {
     this.slug = slugify(this.name);
   }

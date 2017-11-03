@@ -5,7 +5,6 @@
  */
 var path = require('path'),
   mongoose = require('mongoose'),
-  async = require('async'),
   Vendor = mongoose.model('Vendor'),
   config = require(path.resolve('./config/config')),
   errorHandler = require(path.resolve('./server/core/controllers/errors.controller'));
@@ -73,7 +72,7 @@ exports.delete = function (req, res) {
 /**
  * List of Vendors
  */
-exports.list = function (req, res) {
+exports.list = async(req, res) => {
   var sort = req.query._sort ? req.query._sort : config.pagination.default.sort;
   var page = req.query._page ? parseInt(req.query._page, 10) : config.pagination.default.page;
   var limit = req.query._limit ? parseInt(req.query._limit, 10) : config.pagination.default.limit;
@@ -81,47 +80,29 @@ exports.list = function (req, res) {
   if (req.query._order === 'DESC') {
     sort = '-' + sort;
   }
-  if (req.query.q !== undefined) {
+  var list = {
+    count: 0,
+    items: []
+  };
+  var query = {};
+  if (req.query.q) {
     query.name = {
       '$regex': req.query.q,
       '$options': 'i'
     };
   };
 
-  async.series([
-    function (callback) {
-      Vendor.find(query).count(function (err, count) {
-        if (count != 0) {
-          callback(err, count);
-        } else {
-          callback(new Error('no vendors found'), count);
-        }
-      });
-    },
-    function (callback) {
-      Vendor.find(query).sort(sort).skip((page - 1) * limit).limit(limit).exec(function (err, vendors) {
-        callback(err, vendors);
-      });
+  try {
+    list.count = await Vendor.count(query);
+    if (list.count != 0) {
+      list.items = await Vendor.find(query).sort(sort).skip((page - 1) * limit).limit(limit).exec();
     }
-  ], function (err, results) {
-    if (err) {
-      if (err.message === 'no vendors found') {
-        res.setHeader('X-Total-Count', results[0]);
-        return res.json({
-          count: 0,
-          items: []
-        });
-      }
-      return res.status(422).send({
-        message: errorHandler.getErrorMessage(err)
-      });
-    }
-    res.setHeader('X-Total-Count', results[0]);
-    res.json({
-      count: results[0],
-      items: results[1]
+    return res.json(list);
+  } catch (e) {
+    return res.status(422).send({
+      message: errorHandler.getErrorMessage(e)
     });
-  });
+  }
 };
 
 /**

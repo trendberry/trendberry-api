@@ -64,9 +64,11 @@ module.exports = function skuPlugin(schema, options) {
       if (doc) {
         if (doc.hash != sku.hash) {
           Object.assign(doc, sku)
-        }
+          return doc;
+        } else return null;
       } else {
         this.sku.push(sku);
+        return sku;
       }
     }
   }

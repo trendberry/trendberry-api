@@ -3,16 +3,13 @@
 /**
  * Module dependencies.
  */
-var fs = require('fs'),
-  path = require('path'),
+var path = require('path'),
   errorHandler = require(path.resolve('./server/core/controllers/errors.controller')),
   mongoose = require('mongoose'),
   ObjectId = mongoose.Types.ObjectId,
-  multer = require('multer'),
   config = require(path.resolve('./config/config')),
-  Category = mongoose.model('Category'),
-  async = require('async'),
-  crypto = require('crypto');
+  Category = mongoose.model('Category');
+
 
 /**
  * Create a Category
@@ -66,7 +63,6 @@ exports.update = function (req, res) {
  */
 exports.delete = function (req, res) {
   var category = req.category;
-
   category.remove(function (err) {
     if (err) {
       return res.status(400).send({
@@ -81,57 +77,51 @@ exports.delete = function (req, res) {
 /**
  * List of Categories
  */
-exports.list = function (req, res) {
+exports.list = async(req, res) => {
   var sort = req.query._sort ? req.query._sort : config.pagination.default.sort;
   var page = req.query._page ? parseInt(req.query._page, 10) : config.pagination.default.page;
   var limit = req.query._limit ? parseInt(req.query._limit, 10) : config.pagination.default.limit;
   if (req.query._order === 'DESC') {
     sort = '-' + sort;
   }
+  var list = {
+    count: 0,
+    items: []
+  };
   var query = {};
-  if (req.query.q !== undefined) {
+  if (req.query.q) {
     query.name = {
       '$regex': req.query.q,
       '$options': 'i'
     };
   }
 
-  if (req.query.parent !== undefined) {
+  if (req.query.parent) {
     query.parent = req.query.parent ? new ObjectId(req.query.parent) : null;
   }
 
-  async.series([function (callback) {
-    Category.find(query).count(function (err, count) {
-      if (count != 0) {
-        callback(err, count);
-      } else {
-        callback(new Error('no categories found'), count);
-      }
-    });
-  }, function (callback) {
-    Category
-      .aggregate()
-      .match(query)
-      .append({
-        $graphLookup: {
+  try {
+    list.count = await Category.count(query);
+    if (list.count != 0) {
+      list.items = await Category.aggregate().match(query)
+        .graphLookup({
           from: 'categories',
           startWith: '$parent',
           connectFromField: 'parent',
           connectToField: '_id',
           as: 'ancestors'
-        }
-      })
-      .project({
-        _id: 1,
-        name: 1,
-        description: 1,
-        slug: 1,
-        created: 1,
-        parent: 1,
-        ancestors: 1,
-        picture: 1,
-        path: {
-          $concatArrays: [{
+        })
+        .project({
+          _id: 1,
+          name: 1,
+          description: 1,
+          slug: 1,
+          created: 1,
+          parent: 1,
+          ancestors: 1,
+          picture: 1,
+          path: {
+            $concatArrays: [{
               $map: {
                 input: '$ancestors',
                 as: 'a',
@@ -141,34 +131,17 @@ exports.list = function (req, res) {
             [
               ['$name', '$_id']
             ]
-          ]
-        }
-      }).sort(sort).skip((page - 1) * limit).limit(limit).exec(function (err, categories) {
-        callback(err, categories);
-      });
-
-  }], function (err, results) {
-    if (err) {
-      if (err.message === 'no categories found') {
-        res.setHeader('X-Total-Count', 0);
-        return res.json({
-          count: 0,
-          items: []
-        });
-      }
-      return res.status(422).send({
-        message: errorHandler.getErrorMessage(err)
-      });
-    } else {
-      res.setHeader('X-Total-Count', results[0]);
-      res.json({
-        count: results[0],
-        items: results[1]
-      });
+            ]
+          }
+        }).sort(sort).skip((page - 1) * limit).limit(limit).exec();
     }
-  });
+    return res.json(list);
+  } catch (e) {
+    return res.status(422).send({
+      message: errorHandler.getErrorMessage(e)
+    });
+  }
 };
-
 
 /**
  * Category middleware

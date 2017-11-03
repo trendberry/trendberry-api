@@ -9,6 +9,7 @@ var mongoose = require('mongoose'),
   skuPlugin = require('./product.sku.model'),
   crypto = require('crypto'),
   slugify = require('transliteration').slugify,
+  slugPlugin = require(path.resolve('./server/modules/slug/models/slug.model')),
   picturePlugin = require(path.resolve('./server/modules/pictures/models/pictures.model'));
 
 var ProductSchema = new Schema({
@@ -24,7 +25,7 @@ var ProductSchema = new Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category'
   }],
-  slug: String,
+  //slug: String,
   vendor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Vendor'
@@ -44,15 +45,16 @@ var ProductSchema = new Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Shop'
   },
-  hash: String,
+  _hash: String,
 });
 
-ProductSchema.methods.assignBase = function (source) {
-  source.hash = '';
-  for (let field in this.schema.obj) {
-    if (source[field]) this[field] = source[field];
-  }
-  return this;
+ProductSchema.methods.updateBase = function (source) {
+  if (source.hash && (source.hash != this.hash)) {
+    for (let field in this.schema.obj) {
+      if (source[field]) this[field] = source[field];
+    }
+    return this;
+  } else return null;
 };
 
 ProductSchema.methods.makeHash = function () {
@@ -67,7 +69,14 @@ ProductSchema.methods.makeHash = function () {
   this.hash = crypto.createHash('md5').update(hashData).digest("hex");
 }
 
-ProductSchema.pre('save', function (next) {
+ProductSchema.virtual('hash').get(function () {
+  if (!this._hash) {
+    this.makeHash();
+  }
+  return this._hash;
+});
+
+/*ProductSchema.pre('save', function (next) {
   this.populate(['category', 'vendor', 'shop'], (err) => {
     if (!this.slug || this.slug.length === 0) {
       var vendorName = (!this.vendor) ? "" : "-" + this.vendor.name;
@@ -77,9 +86,10 @@ ProductSchema.pre('save', function (next) {
       next();
     }
   })
-});
+});*/
 
 ProductSchema.plugin(metaPlugin, settings.product);
+ProductSchema.plugin(slugPlugin, settings.product);
 //ProductSchema.plugin(picturePlugin, config.uploads.pictures.product);
 ProductSchema.plugin(skuPlugin);
 

@@ -27,10 +27,10 @@ var VendorSchema = new Schema({
 VendorSchema.plugin(metaPlugin, settings.vendor);
 
 VendorSchema.pre('save', function (next) {
-    if (!this.slug || this.slug.length === 0) {
-        this.slug = slugify(this.name);
-    }
-    next();
+  if (!this.slug || this.slug.length === 0) {
+    this.slug = slugify(this.name);
+  }
+  next();
 });
 
 mongoose.model('Vendor', VendorSchema);

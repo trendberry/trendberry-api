@@ -10,7 +10,6 @@ var path = require('path'),
   config = require(path.resolve('./config/config')),
   errorHandler = require(path.resolve('./server/core/controllers/errors.controller'));
 
-
 /**
  * Show the current user
  */

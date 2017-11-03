@@ -26,11 +26,11 @@ RuleFile.prototype.save = function () {
     return 0;
   });
   fs.writeFileSync(this.file, JSON.stringify(this.rules));
-}
+};
 
 RuleFile.prototype.structurize = () => {
 
-}
+};
 
 
 
@@ -42,7 +42,7 @@ RuleFile.prototype.getRule = function (name) {
     }
   }
   return null;
-}
+};
 
 RuleFile.prototype.getProp = function (prop) {
   for (var i = 0; i < this.rules.product.param.length; i++) {
@@ -51,7 +51,7 @@ RuleFile.prototype.getProp = function (prop) {
     }
   }
   return null;
-}
+};
 
 RuleFile.prototype.getValue = function (rule, value) {
   var checkEx = function (val, arr) {
@@ -61,7 +61,7 @@ RuleFile.prototype.getValue = function (rule, value) {
       }
     }
     return false;
-  }
+  };
 
   for (var i = 0; i < rule.compare.length; i++) {
     if (rule.compare[i].match.indexOf(value.toLowerCase()) != -1 || checkEx(value, rule.compare[i].matchEx)) {
@@ -69,7 +69,7 @@ RuleFile.prototype.getValue = function (rule, value) {
     }
   }
   return null;
-}
+};
 
 RuleFile.prototype.inBlacklist = function (value) {
   var self = this;
@@ -95,7 +95,7 @@ RuleFile.prototype.inBlacklist = function (value) {
   } else {
     return inBl(value);
   }
-}
+};
 
 RuleFile.prototype.getCategory = function (value) {
   for (var i = 0; i < this.rules.category.length; i++) {
@@ -103,39 +103,52 @@ RuleFile.prototype.getCategory = function (value) {
       return this.rules.category[i];
     }
   }
-}
+};
 
 RuleFile.prototype.fillObject = function (obj, source) {
   if (!obj || !source) return null;
-  var self = this;
   var rule;
-  for (i in obj) {
-    this.rules.product.param.forEach((param) => {
-      if (param.prop.indexOf(param) != -1) {
-        return rule = param;
-      }
+  for (let field in obj) {
+    rule = this.rules.product.param.find((param) => {
+      if (param.prop == field) return true;
     });
     if (rule) {
-      var cmp;
-      rule.name.forEach((name) => {
-        if (source[name]) {
-          return cmp = source[name];
+      var cmpValue;
+      for (let param of source.param) {
+        if (rule.name.indexOf(param.$.name.toLowerCase()) != -1) {
+          cmpValue = param.$text;
+          break;
         }
-      });
-      cmpValue = rule.compare.find((compare) => {
-        return (compare.match == cmp.toLowerCase() || new RegExp(compare.matchEx, 'i').test(cmp));
-      });
+      }
       if (cmpValue) {
-        if (isArray(obj[i])) {
-          obj[i].push(cmpValue.value);
+        var result;
+        for (let compare of rule.compare) {
+          if (compare.match.indexOf(cmpValue.toLowerCase()) != -1) {
+            result = compare.value;
+            break;
+          }
         }
-        obj[i] = cmpValue.value;
+        if (!result) {
+          for (let compare of rule.compare) {
+            if (new RegExp(compare.matchEx, 'i').test(cmpValue)) {
+              result = compare.value;
+              break;
+            }
+          }
+        }
+      }
+      if (result) {
+        if (Array.isArray(obj[field])) {
+          obj[field].push(result);
+        } else {
+          obj[field] = result;
+        }
       }
       rule = undefined;
     }
   }
   return obj;
-}
+};
 
 
 module.exports = RuleFile;

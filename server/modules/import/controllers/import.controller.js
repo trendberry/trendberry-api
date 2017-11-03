@@ -23,12 +23,12 @@ var feedImportList = new Map();
 
 exports.test = function(req, res){
   Shop.find({}, (err, docs) =>{
-    var testImport = new FeedImport(docs[0])
+    var testImport = new FeedImport(docs[0]);
     testImport.launchImport();
     res.json(testImport);
   
   });
-}
+};
 
 
 exports.start = function (req, res) {
@@ -43,7 +43,7 @@ exports.start = function (req, res) {
       message: error,
       time: Date.now
     });
-    feedImport.importStreamFile.removeListener('data', sendStarted)
+    feedImport.importStreamFile.removeListener('data', sendStarted);
   }
 
   function sendStarted() {
@@ -56,7 +56,7 @@ exports.start = function (req, res) {
   }
 
   feedImport.once('httpError', sendError);
-  feedImport.importStreamFile.once('data', sendStarted)
+  feedImport.importStreamFile.once('data', sendStarted);
 };
 
 exports.pause = function (req, res) {
@@ -66,7 +66,7 @@ exports.pause = function (req, res) {
     return res.json({
       status: feedImport.state,
       message: 'already paused or incorrect state'
-    })
+    });
   }
 
   feedImport.pause();
@@ -83,7 +83,7 @@ exports.resume = function (req, res) {
     return res.json({
       status: feedImport.state,
       message: 'already running or incorrect state'
-    })
+    });
   }
   
   feedImport.resume();
@@ -91,12 +91,12 @@ exports.resume = function (req, res) {
     status: feedImport.state,
     message: 'resumed'
   });
-}
+};
 
 exports.info = function (req, res) {
   var feedImport = req.import;
   res.json(feedImport.getInfo());
-}
+};
 
 exports.list = function (req, res) {
   Shop.find().exec(function (err, shops) {
@@ -115,14 +115,14 @@ exports.list = function (req, res) {
       result.push({
         shop: shops[i],
         import: feed.getInfo()
-      })
+      });
     }
     res.json({
       items: result,
       count: shops.length
-    })
+    });
   });
-}
+};
 
 /**
  * Import middleware
@@ -144,3 +144,6 @@ exports.importByID = function (req, res, next, id) {
   req.import = feedImport;
   next();
 };
+
+
+

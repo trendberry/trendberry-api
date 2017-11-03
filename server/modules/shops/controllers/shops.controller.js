@@ -6,7 +6,6 @@
 var path = require('path'),
   mongoose = require('mongoose'),
   Shop = mongoose.model('Shop'),
-  async = require('async'),
   config = require(path.resolve('./config/config')),
   errorHandler = require(path.resolve('./server/core/controllers/errors.controller'));
 
@@ -43,7 +42,7 @@ exports.read = function (req, res) {
  */
 exports.update = function (req, res) {
   var shop = req.shop;
-  Object.assign(shop, req.body)
+  Object.assign(shop, req.body);
   shop.save(function (err) {
     if (err) {
       return res.status(400).send({
@@ -75,56 +74,36 @@ exports.delete = function (req, res) {
 /**
  * List of Shops
  */
-exports.list = function (req, res) {
+exports.list = async(req, res) => {
   var sort = req.query._sort ? req.query._sort : config.pagination.default.sort;
   var page = req.query._page ? parseInt(req.query._page, 10) : config.pagination.default.page;
   var limit = req.query._limit ? parseInt(req.query._limit, 10) : config.pagination.default.limit;
-
   if (req.query._order === 'DESC') {
     sort = '-' + sort;
   }
+  var list = {
+    count: 0,
+    items: []
+  };
   var query = {};
-  if (req.query.q !== undefined) {
+  if (req.query.q) {
     query.name = {
       '$regex': req.query.q,
       '$options': 'i'
     };
   };
 
-  async.series([
-    function (callback) {
-      Shop.find(query).count(function (err, count) {
-        if (count != 0) {
-          callback(err, count);
-        } else {
-          callback(new Error('no shops found'), count);
-        }
-      });
-    },
-    function (callback) {
-      Shop.find(query).sort(sort).skip((page - 1) * limit).limit(limit).exec(function (err, shops) {
-        callback(err, shops);
-      });
+  try {
+    list.count = await Shop.count(query);
+    if (list.count != 0) {
+      list.items = await Shop.find(query).sort(sort).skip((page - 1) * limit).limit(limit).exec();
     }
-  ], function (err, results) {
-    if (err) {
-      if (err.message === 'no shops found') {
-        res.setHeader('X-Total-Count', 0);
-        return res.json({
-          count: 0,
-          items: []
-        });
-      }
-      return res.status(422).send({
-        message: errorHandler.getErrorMessage(err)
-      });
-    }
-    res.setHeader('X-Total-Count', results[0]);
-    res.json({
-      count: results[0],
-      items: results[1]
+    return res.json(list);
+  } catch (e) {
+    return res.status(422).send({
+      message: errorHandler.getErrorMessage(e)
     });
-  });
+  }
 };
 
 /**

@@ -6,8 +6,8 @@ module.exports = {
     port: process.env.PORT || 8080
   },
   db: {
-    //   uri: 'mongodb://localhost:27017/tb-admin',
-    uri: 'mongodb://trendberry_user:admin123@cluster0-shard-00-00-zbrf4.mongodb.net:27017,cluster0-shard-00-01-zbrf4.mongodb.net:27017,cluster0-shard-00-02-zbrf4.mongodb.net:27017/trendberry_data?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin',
+    uri: 'mongodb://localhost:27017/tb-admin',
+   // uri: 'mongodb://trendberry_user:admin123@cluster0-shard-00-00-zbrf4.mongodb.net:27017,cluster0-shard-00-01-zbrf4.mongodb.net:27017,cluster0-shard-00-02-zbrf4.mongodb.net:27017/trendberry_data?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin',
     options: {
       useMongoClient: true
     }
@@ -60,5 +60,9 @@ module.exports = {
     downloadPath: '',
     logPath: './logs/import',
     maxParallelCount: 1
+  },
+  webSocket: {
+    host: '0.0.0.0',
+    port: process.env.PORT || 8081
   }
 };
