@@ -30,6 +30,7 @@ ImportLog.prototype.end = function () {
 };
 
 ImportLog.prototype.writeLine = function (data) {
+  return null
   if (typeof data === 'string') {
     this.stream.write(data);  
   } else {
@@ -40,6 +41,7 @@ ImportLog.prototype.writeLine = function (data) {
 };
 
 ImportLog.prototype.separate = function () {
+ return null
   this.stream.write(this.sep);
   this.stream.write('\n');
 };

@@ -45,7 +45,7 @@ var ProductSchema = new Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Shop'
   },
-  _hash: String,
+  _hash: String
 });
 
 ProductSchema.methods.updateBase = function (source) {
@@ -60,14 +60,14 @@ ProductSchema.methods.updateBase = function (source) {
 ProductSchema.methods.makeHash = function () {
   var hashData = '';
   var tree = Object.assign({}, this.schema.obj);
-  ['groupId', 'slug', 'shop', 'hash'].forEach((field) => delete tree[field]);
+  ['groupId', 'shop', '_hash', 'vendor', 'category'].forEach((field) => delete tree[field]);
   for (var i in tree) {
     if (this[i]) {
-      hashData = hashData.concat(this[i])
+      hashData = hashData.concat(this[i]);
     }
   }
-  this.hash = crypto.createHash('md5').update(hashData).digest("hex");
-}
+  this._hash = crypto.createHash('md5').update(hashData).digest("hex");
+};
 
 ProductSchema.virtual('hash').get(function () {
   if (!this._hash) {

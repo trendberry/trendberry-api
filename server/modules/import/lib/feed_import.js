@@ -3,7 +3,6 @@
 var http = require('http'),
   fs = require('fs'),
   path = require('path'),
-  async = require('async'),
   events = require('events'),
   util = require('util'),
   contentDisposition = require('content-disposition'),
@@ -19,22 +18,27 @@ var http = require('http'),
   crypto = require('crypto'),
   config = require(path.resolve('./config/config'));
 
- 
+var xmlEntities = {
+  "&amp;": "&",
+  "&apos;": "'",
+  "&gt;": ">",
+  "&lt;": "<",
+  "&quot;": "\""
+};
 
 
 
-//Product.find({}, function(err, docs){
-//docs.forEach(function(doc){
-//doc.remove()
-// })
-//});
 
+for (let model of ['Product']) {
+  mongoose.model(model).find({}, (err, docs) => {
+    docs.forEach(function (doc) {
+   //   doc.remove()
+    
 
-/*Vendor.find({}, function(err, docs){
-docs.forEach(function(doc){
-doc.remove()
- })
-});*/
+    })
+  })
+}
+
 
 
 function FeedImport(source, rules) {
@@ -64,66 +68,62 @@ function FeedImport(source, rules) {
 
 util.inherits(FeedImport, events.EventEmitter);
 
-FeedImport.prototype.downloadFeed = function (callback) {
-  //  console.log('downloading from ' + this.source.url);
-  var self = this;
-  var downloadTime;
-
-  //test
-
-  self.xmlStream = new XmlStream(fs.createReadStream('lamoda.xml'));
-  return callback();
-
-
-  try {
-    var request = http.get(this.source.feedUrl, function (response) {
+FeedImport.prototype.downloadFeed = function () {
+  console.log('downloading from ' + this.source.feedUrl);
+  this.state = 'downloading_feed';
+  var downloadTime = process.hrtime();
+  return new Promise((resolve, reject) => {
+    http.get(this.source.feedUrl, (response) => {
       if (response.statusCode === 200) {
-        var fileName = contentDisposition.parse(response.headers['content-disposition']).parameters.filename;
-        self.importStreamFile = fs.createWriteStream(fileName);
-        self.importStreamFile.on('finish', function () {
-          self.downloadTime = process.hrtime(downloadTime)[0];
-          self.workTime = process.hrtime(downloadTime)[0];
-          self.xmlStream = new XmlStream(fs.createReadStream(fileName));
-          self.emit('download', self.xmlStream);
+        var fileName;
+        if (response.headers['content-disposition']) {
+          fileName = contentDisposition.parse(response.headers['content-disposition']).parameters.filename;
+        } else {
+          fileName = this.source.name + '_' + Date.now().toString();
+        }
+        this.importStreamFile = fs.createWriteStream(fileName);
+        this.importStreamFile.on('finish', () => {
+          this.downloadTime = process.hrtime(downloadTime)[0];
+          this.workTime = process.hrtime(downloadTime)[0];
+          this.xmlStream = new XmlStream(fs.createReadStream(fileName));
+          this.emit('download', this.xmlStream);
           console.log('download done');
-          self.state = 'download_done';
-          callback();
+          this.state = 'download_done';
+          resolve(this.state);
         });
-        self.importStreamFile.on('error', function () {
-          self.workTime = process.hrtime(downloadTime)[0];
-          self.emit('downloadError', filename);
+        this.importStreamFile.on('error', (err) => {
+          this.workTime = process.hrtime(downloadTime)[0];
+          this.emit('downloadError', this.source.feedUrl);
           fs.unlink(fileName);
-          self.state = 'download_error';
-          console.log('failed to download ' + fileName);
-          callback();
+          reject(err);
         });
-        response.pipe(self.importStreamFile);
+        response.pipe(this.importStreamFile);
         this.downloadStartedDate = Date.now();
         downloadTime = process.hrtime();
       } else {
-        self.emit('httpError', response.statusMessage);
-        console.log(response.statusCode + " " + response.statusMessage);
-        callback();
+        this.emit('httpError', response.statusMessage);
+        reject(new Error(response.statusMessage));
       }
+    }).on('error', (e) => {
+      reject(e);
     });
-  } catch (e) {
-    self.state = 'download_error';
+  }).catch((e) => {
+    this.state = 'download_error';
     console.log(e);
-    callback();
-  }
+  });
 };
 
-FeedImport.prototype.productExists = function (product) {
+FeedImport.prototype.productExist = async function (product) {
   var query = product.groupId ? {
-    name: product.name,
     groupId: product.groupId
   } : {
-    name: product.name,
     'sku.offerId': {
       $in: [product.sku[0].offerId]
     }
   };
-  return Product.findOne(query);
+  query.name = product.name,
+    query.shop = this.source;
+  return await Product.findOne(query);
 };
 
 
@@ -163,16 +163,12 @@ FeedImport.prototype.downloadPicture = function (url, callback) {
 };
 
 FeedImport.prototype.importItem = function (item) {
-  var params = item.param;
-  var picts = item.picture;
   var product = new Product();
   var sku = product.sku.create();
   product.offerId = item.$.id;
   product.groupId = item.$.group_id;
-  var rule;
-  var value;
   var category;
-  var vendor;
+
   var finalCategoryTree = [];
   product.name = item.name.replace(" " + item.vendor, "");
   sku.offerId = item.$.id;
@@ -184,34 +180,6 @@ FeedImport.prototype.importItem = function (item) {
   if (!category) {
     return this.emit('noCategory', item);
   }
-
-  /*if (!product.age) {
-    if (self.categories[item.categoryId]) {
-      rule = this.rules.getRule('age');
-      value = this.rules.getValue(rule, self.categories[item.categoryId]);
-      if (!value) {
-        return self.emit('itemImportIgnored', item);
-      } else {
-        product.age = value;
-      }
-    }
-  }*/
-
-  /* if (!product.sex && product.age != 1) {
-     if (category.sex != '') {
-       product.sex = category.sex;
-     } else {
-       if (self.categories[item.categoryId]) {
-         rule = this.rules.getRule('gender');
-         value = this.rules.getValue(rule, self.categories[item.categoryId]);
-         if (!value) {
-           return this.emit('itemImportIgnored', item);
-         } else {
-           product.sex = value;
-         }
-       }
-     }
-   }*/
 
   if (!product.sex && category.sex) {
     product.sex = category.sex;
@@ -245,9 +213,42 @@ FeedImport.prototype.importItem = function (item) {
   product.sku.push(sku);
   this.addProduct({
     product: product,
-    pictures: picts,
+    pictures: item.picture,
     vendor: item.vendor,
     categoryTree: finalCategoryTree
+  });
+};
+
+FeedImport.prototype.deleteItem = function (item) {
+  var target = {
+    name: item.name.replace(" " + item.vendor, ""),
+    'sku.offerId': {
+      $in: [item.$.id]
+    },
+    shop: this.source
+  };
+  if (item.$.group_id) {
+    target.groupId = item.$.group_id;
+  }
+
+  Product.findOne(target, (err, doc) => {
+    if (doc) {
+      if (doc.sku.length === 1) {
+        doc.remove();
+      } else {
+        var targetSku = false;
+        for (let sku of doc.sku){
+          if (sku.offerId == item.$.id){
+            targetSku = sku;
+            break;
+          }
+        }
+        if (!targetSku) return;
+        doc.sku.pull(targetSku._id);
+        doc.save();
+      }
+      this.emit('productRemoved', doc);
+    }
   });
 };
 
@@ -259,27 +260,6 @@ FeedImport.prototype.startImport = function () {
   this.xmlStream.on('error', function (e) {
     console.log(e);
   });
-
-
-  /* this.xmlStream.collect('category');
-   this.xmlStream.on('endElement: categories', function (categories) {
-     function chainCat(cat) {
-       if (cat.$.parentId && cat.$.parentId != 0) {
-         for (var i = 0; i < categories.category.length; i++) {
-           if (categories.category[i].$.id == cat.$.parentId) {
-             var c = {};
-             Object.assign(c, cat);
-             c.$text = chainCat(categories.category[i]).$text + '/' + c.$text;
-             return c;
-           }
-         }
-       }
-       return cat;
-     }
-     for (var i = 0; i < categories.category.length; i++) {
-       self.categories[categories.category[i].$.id] = chainCat(categories.category[i]).$text;
-     }
-   });*/
 
   this.xmlStream.collect('picture');
   this.xmlStream.collect('param');
@@ -295,7 +275,11 @@ FeedImport.prototype.startImport = function () {
       case item.price:
         return self.emit('itemImportIgnored', item);
     }
-    self.importItem(item);
+    if (item.$.deleted) {
+      this.deleteItem(item);
+    } else {
+      this.importItem(item);
+    }
   });
 
   this.xmlStream.on('end', () => {
@@ -305,28 +289,37 @@ FeedImport.prototype.startImport = function () {
     this.state = 'finished';
     console.log(this.getInfo());
     this.source.lastUpdate = this.importStartDate;
+    this.source.save();
   });
 };
 
 FeedImport.prototype.addProduct = async function (data) {
   var product = await this.processCategory(data.categoryTree, data.product);
-
   if (!product) {
     return this.emit('noCategory', data.product);
   }
-  var isExists = await this.productExists(product);
-  if (!isExists) {
+  var exist = await this.productExist(product);
+  if (!exist) {
     var vendor = await this.processVendor(data.vendor);
     product.vendor = vendor;
     var saved = await product.save();
     return this.emit('productSaved', saved);
   } else {
-    var updateResult = isExists.updateBase(product);
-    updateResult = isExists.addSku(product.sku[0]);
+    var updateResult, newSku = false;
+    if (exist.groupId) {
+      newSku = exist.addSku(product.sku[0]);
+    } else {
+      updateResult = exist.updateBase(product);
+    }
     if (updateResult) {
-      await isExists.save();
+      await exist.save();
       return this.emit('productUpdated', product);
-    } else return this.emit('productIsDuplicate', product);
+    }
+    if (newSku) {
+      await exist.save();
+      return this.emit('productSaved', product);
+    }
+    return this.emit('productIsDuplicate', product);
   }
 };
 
@@ -344,6 +337,13 @@ FeedImport.prototype.bindEvents = function () {
   this.on('productUpdated', (item) => {
     this.importStats.updated++;
     this.log.writeLine('product updated');
+    this.log.writeLine(item);
+    this.log.separate();
+    // wrapResume(this.xmlStream);
+  });
+  this.on('productDeleted', (item) => {
+    this.importStats.deleted++;
+    this.log.writeLine('product deleted');
     this.log.writeLine(item);
     this.log.separate();
     // wrapResume(this.xmlStream);
@@ -393,10 +393,11 @@ FeedImport.prototype.bindEvents = function () {
 };
 
 FeedImport.prototype.launchImport = async function () {
-  this.log.start();
-  this.downloadFeed(() => {
+  // this.log.start();
+  await this.downloadFeed();
+  if (this.state === 'download_done') {
     this.startImport();
-  });
+  }
 };
 
 FeedImport.prototype.processCategory = async function (categoryTree, product) {
@@ -455,9 +456,17 @@ FeedImport.prototype.processCategory = async function (categoryTree, product) {
 };
 
 FeedImport.prototype.processVendor = async function (vendorName) {
-  var vendor = await Vendor.findOne({name: new RegExp("^" + vendorName + "$", 'i')});
-  if (!vendor){
-    vendor = new Vendor({name: vendorName});
+  var regExp = new RegExp('\&(amp|quot|apos|lt|gt)\;', 'g');
+  vendorName = vendorName.replace(regExp, (entity) => {
+    return xmlEntities[entity];
+  });
+  var vendor = await Vendor.findOne({
+    name: new RegExp("^" + vendorName + "$", 'i')
+  });
+  if (!vendor) {
+    vendor = new Vendor({
+      name: vendorName
+    });
     await Vendor.create(vendor);
   }
   return vendor;
@@ -491,7 +500,6 @@ FeedImport.prototype.resume = function () {
     this._importTime = process.hrtime();
   }
 };
-
 
 FeedImport.prototype.streamPos = function () {
   return this.xmlStream && this.xmlStream._parser ? this.xmlStream._parser.getCurrentByteIndex() : 0;
@@ -532,6 +540,5 @@ FeedImport.prototype.toJSON = function () {
     lastUptade: this.source.lastUpdate
   };
 };
-
 
 module.exports = FeedImport;
