@@ -5,6 +5,10 @@ var config = require('../config'),
   express = require('./express'),
   http = require('http');
 
+  var a = new RegExp('a', 'i').test('a')
+console.log(a)
+
+
 
 module.exports.startServer = function () {
   mongoose.connect(function (db) {

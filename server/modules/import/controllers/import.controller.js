@@ -11,7 +11,7 @@ var _ = require('lodash'),
   multer = require('multer'),
   config = require(path.resolve('./config/config')),
   Shop = mongoose.model('Shop'),
-  FeedImport = require(path.resolve('./server/modules/import/lib/feed_import')),
+  FeedImport = require(path.resolve('./server/modules/import/lib/feed-import')),
   async = require('async');
   var XmlStream = require('xml-stream');
 

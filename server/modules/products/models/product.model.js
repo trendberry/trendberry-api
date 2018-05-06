@@ -48,29 +48,33 @@ var ProductSchema = new Schema({
   _hash: String
 });
 
-ProductSchema.methods.updateBase = function (source) {
-  if (source.hash && (source.hash != this.hash)) {
+ProductSchema.methods.updateProduct = function (source) {
+  if (!source.hash) return null;
+  if (source.hash != this.hash) {
     for (let field in this.schema.obj) {
       if (source[field]) this[field] = source[field];
     }
+    this._hash = null;
     return this;
   } else return null;
 };
 
 ProductSchema.methods.makeHash = function () {
   var hashData = '';
-  var tree = Object.assign({}, this.schema.obj);
-  ['groupId', 'shop', '_hash', 'vendor', 'category'].forEach((field) => delete tree[field]);
-  for (var i in tree) {
-    if (this[i]) {
-      hashData = hashData.concat(this[i]);
+  var tree = this.schema.obj;
+  for (let unwanted of ['groupId', 'shop', '_hash', 'vendor', 'category']) {
+    delete tree[unwanted];
+  }
+  for (let field in tree) {
+    if (this[field]) {
+      hashData = hashData.concat(this[field]);
     }
   }
   this._hash = crypto.createHash('md5').update(hashData).digest("hex");
 };
 
 ProductSchema.virtual('hash').get(function () {
-  if (!this._hash) {
+  if (!this._hash || this.isModified()) {
     this.makeHash();
   }
   return this._hash;

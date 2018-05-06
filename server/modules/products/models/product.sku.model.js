@@ -26,27 +26,32 @@ SkuSchema.plugin(picturePlugin, config.uploads.pictures.product);
 
 SkuSchema.methods.makeHash = function () {
   var hashData = '';
-  for (var i in this.schema.obj) {
-    if (this[i]) {
-      hashData = hashData.concat(this[i])
+  var tree = this.schema.obj;
+  delete tree._hash;
+  for (let field in tree) {
+    if (this[field]) {
+      hashData = hashData.concat(this[field]);
     }
   }
   this._hash = crypto.createHash('md5').update(hashData).digest("hex");
-}
+};
+
+SkuSchema.methods.updateSku = function(source){
+  if (!source.hash) return null;
+  if (source.hash != this.hash) {
+    for (let field in this.schema.obj) {
+      if (source[field]) this[field] = source[field];
+    }
+    this._hash = null;
+    return this;
+  } else return null;
+};
 
 SkuSchema.virtual('hash').get(function () {
-  if (!this._hash) {
+  if (!this._hash || this.isModified()) {
     this.makeHash();
   }
   return this._hash;
-});
-
-
-SkuSchema.pre('save', function (next) {
-  if (this.isModified() || this.isNew) {
-    this.makeHash();
-  }
-  next();
 });
 
 module.exports = function skuPlugin(schema, options) {
@@ -54,22 +59,13 @@ module.exports = function skuPlugin(schema, options) {
     sku: [SkuSchema]
   });
 
-  schema.methods.addSku = function (sku) {
-    if (this.sku) {
-      var doc = this.sku.find(function (element) {
-        if (element.offerId == sku.offerId) {
-          return true;
-        }
-      });
-      if (doc) {
-        if (doc.hash != sku.hash) {
-          Object.assign(doc, sku)
-          return doc;
-        } else return null;
-      } else {
-        this.sku.push(sku);
-        return sku;
+  schema.methods.hasSku = function(sku){
+    if (!this.sku || !sku.offerId) return false;
+    for (var targetSku of this.sku){
+      if (targetSku.offerId = sku.offerId){
+        return targetSku;
       }
     }
-  }
-}
+    return false;
+  };
+};
