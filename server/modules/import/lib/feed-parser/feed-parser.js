@@ -114,7 +114,6 @@ class FeedParser extends EventEmitter {
 
     this._parser.on('endElement', (name) => {
       if (name == 'offer') {
-        console.log(offer);
         this.emit('offer', offer);
         offer = undefined;
       }
